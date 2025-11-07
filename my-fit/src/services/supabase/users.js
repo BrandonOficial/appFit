@@ -6,23 +6,22 @@ import { supabase } from "./config";
  * @returns {Promise<{ data: object, error: object }>}
  */
 export const getProfile = async (userId) => {
-  // Garantir que temos um ID
   if (!userId)
     return { data: null, error: new Error("User ID é obrigatório.") };
 
   try {
-    // 1. Vai à tabela 'profiles'
-    // 2. Seleciona as colunas 'full_name' e 'avatar_url'
-    // 3. Onde o 'id' da tabela 'profiles' é igual ao userId que passámos
-    // 4. '.single()' diz-nos que esperamos apenas 1 resultado (ou dá erro)
     const { data, error } = await supabase
       .from("profiles")
       .select("full_name, avatar_url")
       .eq("id", userId)
-      .single();
+
+      // --- A MUDANÇA ESTÁ AQUI ---
+      // .single(); // <-- Isto falha se não encontrar nada
+      .maybeSingle(); // <-- Isto devolve 'null' se não encontrar nada (sem erro)
+    // --- FIM DA MUDANÇA ---
 
     if (error) {
-      // Isto pode acontecer se a RLS (Row Level Security) estiver a bloquear
+      // Se tivermos um erro (ex: RLS a bloquear), vamos registá-lo
       console.error("Erro ao buscar perfil (Supabase Service):", error.message);
     }
 
