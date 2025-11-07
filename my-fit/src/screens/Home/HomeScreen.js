@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -14,9 +14,6 @@ const HomeScreen = () => {
   const { user, userProfile, logout, isLoading } = useAuth();
 
   // 2. LÓGICA DE NOME CORRIGIDA E MAIS ROBUSTA
-  //    Tenta o perfil (da tabela 'profiles')...
-  //    Se falhar, tenta os metadados (do registo)...
-  //    Se falhar, usa o email.
   const userName =
     userProfile?.full_name ||
     user?.raw_user_meta_data?.full_name ||
@@ -31,7 +28,6 @@ const HomeScreen = () => {
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={typography.h1}>Olá,</Text>
-          {/* 3. AGORA SIM, ISTO VAI MOSTRAR O NOME CORRETO! */}
           <Text style={typography.h1}>{userName}</Text>
           <Text style={styles.subtitle}>Este é o teu dashboard.</Text>
         </View>
@@ -46,7 +42,6 @@ const HomeScreen = () => {
   );
 };
 
-// ... (teus estilos - sem alteração)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
