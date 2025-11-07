@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Switch,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
@@ -17,16 +18,12 @@ import { useAuth } from "../../contexts/AuthContext";
 import { globalStyles } from "../../styles/globalStyles";
 import { typography } from "../../styles/typography";
 import { theme } from "../../styles/theme";
-import Button from "../../components/common/Button"; // O nosso botão verde
-import ProfileListItem from "../../components/common/ProfileListItem"; // O nosso novo item de lista
 
 const ProfileScreen = () => {
-  // Obter todos os dados e funções que precisamos do contexto
   const { user, userProfile, updateAvatar, logout, isLoading } = useAuth();
+  const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
 
   // --- Funções de Handler ---
-
-  // Função para escolher a imagem (já a tínhamos)
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
@@ -50,27 +47,53 @@ const ProfileScreen = () => {
     }
   };
 
-  // Função para o botão de Sair
   const handleLogout = async () => {
     await logout();
   };
 
-  // Funções placeholder para os novos botões da lista
-  const handleEditProfile = () => console.log("Clicou em Editar Perfil");
-  const handleNotifications = () => console.log("Clicou em Notificações");
-  const handlePrivacy = () => console.log("Clicou em Política de Privacidade");
-  const handleHelp = () => console.log("Clicou em Ajuda");
+  // Funções placeholder
+  const handleEditProfile = () => console.log("Clicou em Gerenciar Perfil");
+  const handlePrivacy = () => console.log("Clicou em Privacidade");
+  const handleLanguage = () => console.log("Clicou em Idioma");
+  const handleAbout = () => console.log("Clicou em Sobre o App");
+  const handleHelp = () => console.log("Clicou em Ajuda e Suporte");
 
-  // --- Lógica de Nomes ---
   const userName = userProfile?.full_name || user?.email;
   const userEmail = user?.email;
 
-  // --- Renderização ---
+  // Componente de Item da Lista
+  const SettingsItem = ({
+    icon,
+    title,
+    onPress,
+    showChevron = true,
+    rightComponent,
+  }) => (
+    <TouchableOpacity
+      style={styles.settingsItem}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={styles.settingsItemLeft}>
+        <View style={styles.iconContainer}>
+          <Ionicons name={icon} size={24} color={theme.colors.primary} />
+        </View>
+        <Text style={styles.settingsItemText}>{title}</Text>
+      </View>
+      {rightComponent ||
+        (showChevron && (
+          <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
+        ))}
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView style={globalStyles.screenContainer}>
-      {/* Usamos ScrollView para o caso de o ecrã ser pequeno */}
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {/* --- 1. CABEÇALHO DO PERFIL --- */}
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* --- HEADER COM FOTO DE PERFIL --- */}
         <View style={styles.profileHeader}>
           <TouchableOpacity
             onPress={handlePickImage}
@@ -90,7 +113,6 @@ const ProfileScreen = () => {
                 />
               </View>
             )}
-            {/* Ícone de "Editar" por cima da foto */}
             <View style={styles.editIcon}>
               <Ionicons
                 name="camera"
@@ -104,69 +126,105 @@ const ProfileScreen = () => {
           <Text style={styles.email}>{userEmail}</Text>
         </View>
 
-        {/* --- 2. LISTAS DE OPÇÕES --- */}
-        <View style={styles.listContainer}>
-          {/* Secção Geral */}
-          <Text style={styles.sectionTitle}>Geral</Text>
-          <ProfileListItem
-            icon="person-outline"
-            title="Editar Perfil"
-            onPress={handleEditProfile}
-          />
-          <ProfileListItem
-            icon="notifications-outline"
-            title="Notificações"
-            onPress={handleNotifications}
-          />
-
-          {/* Secção Informações */}
-          <Text style={styles.sectionTitle}>Informações</Text>
-          <ProfileListItem
-            icon="lock-closed-outline"
-            title="Política de Privacidade"
-            onPress={handlePrivacy}
-          />
-          <ProfileListItem
-            icon="help-circle-outline"
-            title="Ajuda"
-            onPress={handleHelp}
-          />
+        {/* --- SEÇÃO CONTA --- */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>CONTA</Text>
+          <View style={styles.settingsCard}>
+            <SettingsItem
+              icon="person-outline"
+              title="Gerenciar Perfil"
+              onPress={handleEditProfile}
+            />
+          </View>
         </View>
 
-        {/* --- 3. BOTÃO DE SAIR --- */}
-        <View style={styles.logoutButtonContainer}>
-          <Button
-            title="Sair"
-            onPress={handleLogout}
-            isLoading={isLoading}
-            // --- A MUDANÇA ESTÁ AQUI ---
-            variant="danger" // <-- Adiciona esta linha
-            // --- FIM DA MUDANÇA ---
-          />
+        {/* --- SEÇÃO CONFIGURAÇÕES DO APP --- */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>CONFIGURAÇÕES DO APP</Text>
+          <View style={styles.settingsCard}>
+            <SettingsItem
+              icon="notifications-outline"
+              title="Notificações"
+              showChevron={false}
+              rightComponent={
+                <Switch
+                  value={notificationsEnabled}
+                  onValueChange={setNotificationsEnabled}
+                  trackColor={{
+                    false: "#374151",
+                    true: theme.colors.primary,
+                  }}
+                  thumbColor="#FFFFFF"
+                  ios_backgroundColor="#374151"
+                />
+              }
+            />
+            <View style={styles.divider} />
+            <SettingsItem
+              icon="lock-closed-outline"
+              title="Privacidade"
+              onPress={handlePrivacy}
+            />
+            <View style={styles.divider} />
+            <SettingsItem
+              icon="language-outline"
+              title="Idioma"
+              onPress={handleLanguage}
+            />
+          </View>
         </View>
+
+        {/* --- SEÇÃO INFORMAÇÕES --- */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>INFORMAÇÕES</Text>
+          <View style={styles.settingsCard}>
+            <SettingsItem
+              icon="information-circle-outline"
+              title="Sobre o App"
+              onPress={handleAbout}
+            />
+            <View style={styles.divider} />
+            <SettingsItem
+              icon="help-circle-outline"
+              title="Ajuda e Suporte"
+              onPress={handleHelp}
+            />
+          </View>
+        </View>
+
+        {/* --- BOTÃO DE SAIR --- */}
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleLogout}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="log-out-outline" size={24} color="#EF4444" />
+          <Text style={styles.logoutText}>Sair</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-// --- ESTILOS ATUALIZADOS ---
 const styles = StyleSheet.create({
   scrollContainer: {
-    flexGrow: 1, // Garante que o ScrollView ocupa o espaço
-    padding: theme.spacing.md,
+    flexGrow: 1,
+    paddingHorizontal: theme.spacing.md,
+    paddingBottom: theme.spacing.xl,
   },
   profileHeader: {
     alignItems: "center",
+    marginTop: theme.spacing.lg,
     marginBottom: theme.spacing.xl,
   },
   avatarContainer: {
     marginBottom: theme.spacing.md,
-    position: "relative", // Necessário para o ícone de editar
+    position: "relative",
   },
   avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: theme.colors.surface,
   },
   avatarPlaceholder: {
@@ -175,39 +233,88 @@ const styles = StyleSheet.create({
   },
   editIcon: {
     position: "absolute",
-    bottom: 5,
-    right: 5,
+    bottom: 0,
+    right: 0,
     backgroundColor: theme.colors.primary,
-    padding: 6,
-    borderRadius: 15,
-    borderWidth: 2,
+    padding: 8,
+    borderRadius: 20,
+    borderWidth: 3,
     borderColor: theme.colors.background,
   },
   name: {
     ...typography.h1,
-    fontSize: theme.fontSizes.xl,
+    fontSize: 24,
+    marginBottom: 4,
   },
   email: {
     ...typography.body,
     color: theme.colors.textSecondary,
-    fontSize: theme.fontSizes.md,
+    fontSize: 14,
   },
-  listContainer: {
-    width: "100%",
-    marginBottom: theme.spacing.xl,
+  section: {
+    marginBottom: theme.spacing.lg,
   },
   sectionTitle: {
-    ...typography.label, // Usa o nosso estilo de label (cinza, pequeno)
-    fontSize: theme.fontSizes.md,
-    color: theme.colors.textSecondary,
-    textTransform: "uppercase", // Como no design
-    marginBottom: theme.spacing.md,
-    marginLeft: theme.spacing.sm, // Pequeno recuo
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6B7280",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    marginBottom: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.sm,
   },
-  logoutButtonContainer: {
-    width: "100%",
-    marginTop: "auto", // Empurra o botão de Sair para o fundo
-    paddingTop: theme.spacing.lg,
+  settingsCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  settingsItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    minHeight: 64,
+  },
+  settingsItemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: "#1F2937",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: theme.spacing.md,
+  },
+  settingsItemText: {
+    ...typography.body,
+    fontSize: 16,
+    flex: 1,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    marginLeft: 72, // Alinha com o texto após o ícone
+  },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderRadius: 12,
+    paddingVertical: theme.spacing.md,
+    marginTop: theme.spacing.md,
+    minHeight: 64,
+    gap: 12,
+  },
+  logoutText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#EF4444",
   },
 });
 

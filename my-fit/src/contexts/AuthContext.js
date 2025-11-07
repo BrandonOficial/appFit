@@ -12,7 +12,7 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // A tua excelente função helper (perfeita, sem alterações)
+  // Função helper para carregar perfil
   const loadUserProfile = async (userId) => {
     if (!userId) {
       setUserProfile(null);
@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // A tua função de avatar (perfeita, sem alterações)
+  // Função de avatar
   const updateAvatar = async (fileUri) => {
     if (!user) return;
     setIsLoading(true);
@@ -66,101 +66,155 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // O "Guardião" (Atualizado para lidar com o loading do perfil)
+  // Inicialização e listener de auth
   useEffect(() => {
-    setIsLoading(true);
+    let mounted = true;
+
     const getSession = async () => {
       try {
         const {
           data: { session },
         } = await supabase.auth.getSession();
-        if (session) {
-          setUser(session.user);
-          await loadUserProfile(session.user.id); // Carrega o perfil
+
+        if (mounted) {
+          if (session) {
+            setUser(session.user);
+            await loadUserProfile(session.user.id);
+          } else {
+            setUser(null);
+            setUserProfile(null);
+          }
+          setIsLoading(false);
         }
       } catch (e) {
         console.error("Erro ao obter sessão:", e);
-      } finally {
-        setIsLoading(false); // Termina o loading inicial
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
+
     getSession();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await loadUserProfile(session.user.id);
-        } else {
-          setUserProfile(null);
+      async (event, session) => {
+        console.log("Auth event:", event); // Debug
+
+        if (mounted) {
+          if (session?.user) {
+            setUser(session.user);
+            await loadUserProfile(session.user.id);
+          } else {
+            setUser(null);
+            setUserProfile(null);
+          }
+          // IMPORTANTE: Resetar loading após mudança de auth
+          setIsLoading(false);
         }
       }
     );
 
     return () => {
+      mounted = false;
       authListener.subscription.unsubscribe();
     };
   }, []);
 
-  // --- Funções de Autenticação (Otimizadas) ---
+  // --- Funções de Autenticação (Corrigidas) ---
 
-  // Função de Login (Otimizada)
+  // Função de Login
   const login = async (email, password) => {
     setIsLoading(true);
     setError(null);
-    const { data, error } = await signInWithPassword(email, password);
 
-    if (error) {
-      setError(error.message);
-      setIsLoading(false); // Parar o loading SÓ se houver erro
+    try {
+      const { data, error } = await signInWithPassword(email, password);
+
+      if (error) {
+        setError(error.message);
+        setIsLoading(false);
+        return false;
+      }
+
+      // O onAuthStateChange vai cuidar do resto
+      // Mas vamos dar um timeout de segurança
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 3000);
+
+      return true;
+    } catch (e) {
+      console.error("Erro inesperado no login:", e);
+      setError(e.message);
+      setIsLoading(false);
+      return false;
     }
-    // Se o login for bem-sucedido, o 'onAuthStateChange'
-    // vai tratar de chamar o 'loadUserProfile' e
-    // o 'useEffect' (no arranque) já trata o 'setIsLoading(false)'
   };
 
-  // Função de Registo (Otimizada)
+  // Função de Registo
   const register = async (name, email, password) => {
     setIsLoading(true);
     setError(null);
-    const { data, error } = await signUp(name, email, password);
 
-    if (error) {
-      setError(error.message);
-      setIsLoading(false); // Parar o loading SÓ se houver erro
+    try {
+      const { data, error } = await signUp(name, email, password);
+
+      if (error) {
+        setError(error.message);
+        setIsLoading(false);
+        return false;
+      }
+
+      // O onAuthStateChange vai cuidar do resto
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 3000);
+
+      return true;
+    } catch (e) {
+      console.error("Erro inesperado no register:", e);
+      setError(e.message);
+      setIsLoading(false);
       return false;
     }
-
-    // Se o registo for bem-sucedido, o 'onAuthStateChange'
-    // vai tratar de chamar o 'loadUserProfile'.
-    // O 'setIsLoading(false)' será tratado pelo 'onAuthStateChange'
-    // ou pelo 'useEffect' inicial.
-
-    // (Poderíamos pôr setIsLoading(false) aqui, mas é mais limpo
-    // deixar o 'onAuthStateChange' ou o 'getSession' gerir o loading)
-
-    // No entanto, vamos adicionar para o caso de o 'onAuthStateChange' ser mais lento:
-    setIsLoading(false);
-    return true;
   };
 
-  // Função de Logout (Otimizada)
+  // Função de Logout
   const logout = async () => {
     setIsLoading(true);
     setError(null);
-    const { error } = await signOut();
-    if (error) {
-      setError(error.message);
-      setIsLoading(false); // Parar o loading SÓ se houver erro
+
+    try {
+      const { error } = await signOut();
+
+      if (error) {
+        setError(error.message);
+        setIsLoading(false);
+        return false;
+      }
+
+      // Limpar estados imediatamente
+      setUser(null);
+      setUserProfile(null);
+
+      // O onAuthStateChange também vai disparar, mas vamos garantir
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 1000);
+
+      return true;
+    } catch (e) {
+      console.error("Erro inesperado no logout:", e);
+      setError(e.message);
+      setIsLoading(false);
+      return false;
     }
-    // O 'onAuthStateChange' vai tratar de limpar o 'user' e o 'userProfile'
-    // e o 'useEffect' (no arranque) trata o 'setIsLoading(false)'.
   };
 
   // --- Valor a Partilhar ---
   const value = {
     user,
-    userProfile, // Partilhar o perfil
+    userProfile,
     isLoading,
     error,
     isLoggedIn: !!user,
