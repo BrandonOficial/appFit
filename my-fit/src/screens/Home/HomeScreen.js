@@ -10,49 +10,51 @@ import { typography } from "../../styles/typography";
 import { theme } from "../../styles/theme";
 
 const HomeScreen = () => {
-  // 1. Obter o 'user' e a função 'logout' do nosso contexto
-  // Também obtemos o 'isLoading' para mostrar o spinner no botão ao sair
-  const { user, logout, isLoading } = useAuth();
+  // 1. OBTER O NOVO 'userProfile' DO CONTEXTO
+  const { user, userProfile, logout, isLoading } = useAuth();
 
-  // 2. Tentar obter o nome que guardámos no registo
-  // O Supabase guarda-o em 'raw_user_meta_data'
-  const userName = user?.raw_user_meta_data?.full_name || user?.email;
+  // 2. LÓGICA DE NOME CORRIGIDA E MAIS ROBUSTA
+  //    Tenta o perfil (da tabela 'profiles')...
+  //    Se falhar, tenta os metadados (do registo)...
+  //    Se falhar, usa o email.
+  const userName =
+    userProfile?.full_name ||
+    user?.raw_user_meta_data?.full_name ||
+    user?.email;
 
   const handleLogout = async () => {
-    // A função 'logout' já vem do nosso contexto, pronta a usar
     await logout();
   };
 
   return (
-    // 3. Usar o 'screenContainer' dos nossos estilos globais
     <SafeAreaView style={globalStyles.screenContainer}>
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={typography.h1}>Olá,</Text>
+          {/* 3. AGORA SIM, ISTO VAI MOSTRAR O NOME CORRETO! */}
           <Text style={typography.h1}>{userName}</Text>
           <Text style={styles.subtitle}>Este é o teu dashboard.</Text>
         </View>
 
-        {/* 4. O botão de Sair */}
         <Button
           title="Sair (Logout)"
           onPress={handleLogout}
-          isLoading={isLoading} // O botão mostrará um spinner se estiver a fazer logout
+          isLoading={isLoading}
         />
       </View>
     </SafeAreaView>
   );
 };
 
+// ... (teus estilos - sem alteração)
 const styles = StyleSheet.create({
-  // O globalStyles.screenContainer já nos dá o flex: 1 e o fundo
   container: {
     flex: 1,
-    justifyContent: "space-between", // Empurra o botão para o fundo
-    paddingVertical: theme.spacing.md, // Espaço vertical
+    justifyContent: "space-between",
+    paddingVertical: theme.spacing.md,
   },
   header: {
-    // Conteúdo no topo
+    // ...
   },
   subtitle: {
     ...typography.body,
