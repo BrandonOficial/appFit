@@ -4,24 +4,53 @@ import {
   Text,
   StyleSheet,
   ActivityIndicator,
-} from "react-native"; // 1. Importar ActivityIndicator
+} from "react-native";
 import { theme } from "../../styles/theme";
 
-// 2. Adicionar 'isLoading' e '...props'
-const Button = ({ title, onPress, isLoading = false, ...props }) => {
+/**
+ * Botão customizado que aceita variantes de cor.
+ * @param {object} props
+ * @param {string} props.title - O texto do botão.
+ * @param {function} props.onPress - A função ao clicar.
+ * @param {boolean} [props.isLoading=false] - Mostra um spinner se for true.
+ * @param {'primary' | 'danger'} [props.variant='primary'] - O esquema de cor.
+ */
+const Button = ({
+  title,
+  onPress,
+  isLoading = false,
+  variant = "primary",
+  ...props
+}) => {
+  // 1. Escolher os estilos com base na 'variant'
+  const containerStyle = [
+    styles.container,
+    variant === "danger" ? styles.containerDanger : styles.containerPrimary,
+    isLoading && styles.disabled,
+  ];
+
+  const textStyle = [
+    styles.text,
+    variant === "danger" ? styles.textDanger : styles.textPrimary,
+  ];
+
   return (
-    // 3. Adicionar 'disabled={isLoading}' para evitar cliques duplos
     <TouchableOpacity
-      style={[styles.container, isLoading && styles.disabled]}
+      style={containerStyle}
       onPress={onPress}
       disabled={isLoading}
       {...props}
     >
-      {/* 4. Mostrar o spinner ou o texto */}
       {isLoading ? (
-        <ActivityIndicator size="small" color={theme.colors.background} />
+        // Usar a cor de texto correta para o spinner
+        <ActivityIndicator
+          size="small"
+          color={
+            variant === "danger" ? theme.colors.text : theme.colors.background
+          }
+        />
       ) : (
-        <Text style={styles.text}>{title}</Text>
+        <Text style={textStyle}>{title}</Text>
       )}
     </TouchableOpacity>
   );
@@ -29,24 +58,41 @@ const Button = ({ title, onPress, isLoading = false, ...props }) => {
 
 const styles = StyleSheet.create({
   container: {
+    // Estilo base (comum a todos)
     width: "100%",
-    backgroundColor: theme.colors.primary,
     paddingVertical: theme.spacing.md,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
     height: 50,
   },
+  // --- Estilos das Variantes ---
+  containerPrimary: {
+    // Verde
+    backgroundColor: theme.colors.primary,
+  },
+  containerDanger: {
+    // Vermelho
+    backgroundColor: theme.colors.error, // Usando a cor 'error' do teu tema
+  },
+  textPrimary: {
+    // Texto para o botão verde
+    color: theme.colors.background, // Texto escuro
+  },
+  textDanger: {
+    // Texto para o botão vermelho
+    color: theme.colors.text, // Texto claro (branco)
+  },
+  // --- Fim das Variantes ---
   text: {
+    // Estilo base do texto
     fontFamily: theme.fonts.medium,
     fontSize: theme.fontSizes.md,
     fontWeight: "500",
-    color: theme.colors.background,
     textAlign: "center",
   },
-  // 5. Estilo opcional para o botão quando estiver a carregar
   disabled: {
-    opacity: 0.7, // Um pouco transparente para feedback visual
+    opacity: 0.7,
   },
 });
 

@@ -1,27 +1,22 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // Nossos componentes e hooks
 import { useAuth } from "../../contexts/AuthContext";
-import Button from "../../components/common/Button";
 import { globalStyles } from "../../styles/globalStyles";
 import { typography } from "../../styles/typography";
 import { theme } from "../../styles/theme";
 
 const HomeScreen = () => {
-  // 1. OBTER O NOVO 'userProfile' DO CONTEXTO
-  const { user, userProfile, logout, isLoading } = useAuth();
+  // 1. Obter apenas os dados que precisamos
+  const { user, userProfile } = useAuth();
 
-  // 2. LÓGICA DE NOME CORRIGIDA E MAIS ROBUSTA
+  // 2. Lógica de nome (sem alteração)
   const userName =
     userProfile?.full_name ||
     user?.raw_user_meta_data?.full_name ||
     user?.email;
-
-  const handleLogout = async () => {
-    await logout();
-  };
 
   return (
     <SafeAreaView style={globalStyles.screenContainer}>
@@ -32,11 +27,7 @@ const HomeScreen = () => {
           <Text style={styles.subtitle}>Este é o teu dashboard.</Text>
         </View>
 
-        <Button
-          title="Sair (Logout)"
-          onPress={handleLogout}
-          isLoading={isLoading}
-        />
+        {/* 3. BOTÃO DE SAIR REMOVIDO DAQUI */}
       </View>
     </SafeAreaView>
   );
@@ -45,11 +36,11 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "space-between",
+    // justifyContent removido para o conteúdo ficar no topo
     paddingVertical: theme.spacing.md,
   },
   header: {
-    // ...
+    // Conteúdo no topo
   },
   subtitle: {
     ...typography.body,

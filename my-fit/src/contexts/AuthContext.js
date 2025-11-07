@@ -1,29 +1,24 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { supabase } from "../services/supabase/config";
-// 1. Importar TODOS os nossos serviços de auth
 import { signInWithPassword, signOut, signUp } from "../services/supabase/auth";
-// 2. IMPORTAR O SERVIÇO DE PERFIL
-import { getProfile } from "../services/supabase/users";
+import { getProfile, updateProfile } from "../services/supabase/users";
+import { uploadAvatar } from "../services/supabase/storage";
 
-// Criar o Contexto
 const AuthContext = createContext();
 
-// Criar o Provedor (Provider)
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [userProfile, setUserProfile] = useState(null); // NOVO: Estado para o perfil
+  const [userProfile, setUserProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Carrega o perfil do utilizador da tabela 'profiles'
+  // A tua excelente função helper (perfeita, sem alterações)
   const loadUserProfile = async (userId) => {
     if (!userId) {
       setUserProfile(null);
       return;
     }
-
     const { data, error } = await getProfile(userId);
-
     if (error) {
       console.error("Erro ao carregar perfil:", error.message);
       setUserProfile(null);
@@ -32,36 +27,68 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // O "Guardião" - Verifica a sessão no arranque e ouve mudanças
+  // A tua função de avatar (perfeita, sem alterações)
+  const updateAvatar = async (fileUri) => {
+    if (!user) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      // 1. Upload
+      const { data: uploadData, error: uploadError } = await uploadAvatar(
+        fileUri,
+        user.id
+      );
+      if (uploadError) throw uploadError;
+
+      // 2. Obter URL
+      const { data: urlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(uploadData.path);
+      if (!urlData.publicUrl) {
+        throw new Error("Não foi possível obter o URL público.");
+      }
+      const newAvatarUrl = urlData.publicUrl;
+
+      // 3. Atualizar Tabela 'profiles'
+      const { data: profileData, error: updateError } = await updateProfile(
+        user.id,
+        { avatar_url: newAvatarUrl }
+      );
+      if (updateError) throw updateError;
+
+      // 4. Atualizar estado local
+      setUserProfile(profileData);
+    } catch (e) {
+      console.error("Erro no updateAvatar (Context):", e.message);
+      setError(e.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // O "Guardião" (Atualizado para lidar com o loading do perfil)
   useEffect(() => {
     setIsLoading(true);
-
-    // I. Tenta obter a sessão atual
     const getSession = async () => {
       try {
         const {
           data: { session },
         } = await supabase.auth.getSession();
-
         if (session) {
           setUser(session.user);
-          // NOVO: Carrega o perfil assim que temos o utilizador
-          await loadUserProfile(session.user.id);
+          await loadUserProfile(session.user.id); // Carrega o perfil
         }
       } catch (e) {
         console.error("Erro ao obter sessão:", e);
       } finally {
-        setIsLoading(false);
+        setIsLoading(false); // Termina o loading inicial
       }
     };
     getSession();
 
-    // II. Configura o "ouvinte" (listener)
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setUser(session?.user ?? null);
-
-        // NOVO: Carrega o perfil quando há mudanças na autenticação
         if (session?.user) {
           await loadUserProfile(session.user.id);
         } else {
@@ -70,15 +97,14 @@ export const AuthProvider = ({ children }) => {
       }
     );
 
-    // Função de limpeza: remove o "ouvinte"
     return () => {
       authListener.subscription.unsubscribe();
     };
   }, []);
 
-  // --- Funções de Autenticação ---
+  // --- Funções de Autenticação (Otimizadas) ---
 
-  // Função de Login
+  // Função de Login (Otimizada)
   const login = async (email, password) => {
     setIsLoading(true);
     setError(null);
@@ -86,61 +112,62 @@ export const AuthProvider = ({ children }) => {
 
     if (error) {
       setError(error.message);
-    } else if (data?.user) {
-      // Carrega o perfil após login bem-sucedido
-      await loadUserProfile(data.user.id);
+      setIsLoading(false); // Parar o loading SÓ se houver erro
     }
-
-    setIsLoading(false);
+    // Se o login for bem-sucedido, o 'onAuthStateChange'
+    // vai tratar de chamar o 'loadUserProfile' e
+    // o 'useEffect' (no arranque) já trata o 'setIsLoading(false)'
   };
 
-  // Função de Registo
+  // Função de Registo (Otimizada)
   const register = async (name, email, password) => {
     setIsLoading(true);
     setError(null);
-
     const { data, error } = await signUp(name, email, password);
 
     if (error) {
       setError(error.message);
-      setIsLoading(false);
+      setIsLoading(false); // Parar o loading SÓ se houver erro
       return false;
     }
 
-    // Se o registo foi bem-sucedido e temos um user
-    if (data?.user) {
-      await loadUserProfile(data.user.id);
-    }
+    // Se o registo for bem-sucedido, o 'onAuthStateChange'
+    // vai tratar de chamar o 'loadUserProfile'.
+    // O 'setIsLoading(false)' será tratado pelo 'onAuthStateChange'
+    // ou pelo 'useEffect' inicial.
 
+    // (Poderíamos pôr setIsLoading(false) aqui, mas é mais limpo
+    // deixar o 'onAuthStateChange' ou o 'getSession' gerir o loading)
+
+    // No entanto, vamos adicionar para o caso de o 'onAuthStateChange' ser mais lento:
     setIsLoading(false);
     return true;
   };
 
-  // Função de Logout
+  // Função de Logout (Otimizada)
   const logout = async () => {
     setIsLoading(true);
     setError(null);
     const { error } = await signOut();
-
     if (error) {
       setError(error.message);
-    } else {
-      setUserProfile(null); // Limpa o perfil ao fazer logout
+      setIsLoading(false); // Parar o loading SÓ se houver erro
     }
-
-    setIsLoading(false);
+    // O 'onAuthStateChange' vai tratar de limpar o 'user' e o 'userProfile'
+    // e o 'useEffect' (no arranque) trata o 'setIsLoading(false)'.
   };
 
   // --- Valor a Partilhar ---
   const value = {
     user,
-    userProfile, // NOVO: Partilhar o perfil
+    userProfile, // Partilhar o perfil
     isLoading,
     error,
     isLoggedIn: !!user,
     login,
     logout,
     register,
+    updateAvatar,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

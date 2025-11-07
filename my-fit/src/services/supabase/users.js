@@ -1,9 +1,8 @@
 import { supabase } from "./config";
 
 /**
- * Obtém os dados do perfil de um utilizador específico (da tabela 'profiles').
- * @param {string} userId - O ID do utilizador (vem de auth.user.id).
- * @returns {Promise<{ data: object, error: object }>}
+ * Obtém os dados do perfil de um utilizador (da tabela 'profiles').
+ * Usamos .maybeSingle() para não dar erro se o perfil (ainda) não existir.
  */
 export const getProfile = async (userId) => {
   if (!userId)
@@ -14,20 +13,43 @@ export const getProfile = async (userId) => {
       .from("profiles")
       .select("full_name, avatar_url")
       .eq("id", userId)
-
-      // --- A MUDANÇA ESTÁ AQUI ---
-      // .single(); // <-- Isto falha se não encontrar nada
-      .maybeSingle(); // <-- Isto devolve 'null' se não encontrar nada (sem erro)
-    // --- FIM DA MUDANÇA ---
+      .maybeSingle(); // <-- Retorna null em vez de erro se não encontrar
 
     if (error) {
-      // Se tivermos um erro (ex: RLS a bloquear), vamos registá-lo
       console.error("Erro ao buscar perfil (Supabase Service):", error.message);
+    }
+    return { data, error };
+  } catch (e) {
+    console.error("Erro inesperado em getProfile:", e);
+    return { data: null, error: e };
+  }
+};
+
+/**
+ * Atualiza os dados do perfil de um utilizador (ex: nome, avatar_url).
+ */
+export const updateProfile = async (userId, updates) => {
+  if (!userId)
+    return { data: null, error: new Error("User ID é obrigatório.") };
+
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .update(updates) // Atualiza os campos passados
+      .eq("id", userId)
+      .select() // Retorna a linha atualizada
+      .single(); // Aqui usamos single() porque esperamos que a linha exista
+
+    if (error) {
+      console.error(
+        "Erro ao atualizar perfil (Supabase Service):",
+        error.message
+      );
     }
 
     return { data, error };
   } catch (e) {
-    console.error("Erro inesperado em getProfile:", e);
+    console.error("Erro inesperado em updateProfile:", e);
     return { data: null, error: e };
   }
 };
