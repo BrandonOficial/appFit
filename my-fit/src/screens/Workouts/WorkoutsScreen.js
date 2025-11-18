@@ -26,14 +26,22 @@ const WorkoutsScreen = () => {
   const [workouts, setWorkouts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   // Função para carregar os treinos
   const loadWorkouts = async () => {
     if (!user) return;
 
     try {
+      console.log("🔵 Carregando treinos para:", user.id);
       const { data, error } = await getWorkouts(user.id);
-      if (error) throw error;
+
+      if (error) {
+        console.error("❌ Erro ao carregar:", error);
+        throw error;
+      }
+
+      console.log("✅ Treinos carregados:", data?.length || 0);
       setWorkouts(data || []);
     } catch (e) {
       console.error("Erro ao carregar treinos:", e);
@@ -57,22 +65,51 @@ const WorkoutsScreen = () => {
     loadWorkouts();
   };
 
-  // Função para deletar treino
-  const handleDeleteWorkout = (workoutId, workoutName) => {
+  // Função para deletar treino (CORRIGIDA)
+  const handleDeleteWorkout = async (workoutId, workoutName) => {
+    console.log("🗑️ Tentando deletar:", workoutId, workoutName);
+
     Alert.alert(
       "Deletar Treino",
       `Tem certeza que deseja deletar "${workoutName}"?`,
       [
-        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Cancelar",
+          style: "cancel",
+          onPress: () => console.log("❌ Cancelado"),
+        },
         {
           text: "Deletar",
           style: "destructive",
           onPress: async () => {
-            const { error } = await deleteWorkout(workoutId);
-            if (error) {
-              Alert.alert("Erro", "Não foi possível deletar o treino.");
-            } else {
-              loadWorkouts();
+            try {
+              console.log("🔵 Deletando treino:", workoutId);
+              setDeletingId(workoutId);
+
+              const { error } = await deleteWorkout(workoutId);
+
+              if (error) {
+                console.error("❌ Erro ao deletar:", error);
+                throw error;
+              }
+
+              console.log("✅ Treino deletado com sucesso");
+
+              // Atualizar a lista localmente (otimista)
+              setWorkouts((prev) => prev.filter((w) => w.id !== workoutId));
+
+              // Recarregar para garantir sincronização
+              await loadWorkouts();
+
+              Alert.alert("Sucesso", "Treino deletado com sucesso!");
+            } catch (error) {
+              console.error("❌ Erro no delete:", error);
+              Alert.alert(
+                "Erro",
+                "Não foi possível deletar o treino. Tente novamente."
+              );
+            } finally {
+              setDeletingId(null);
             }
           },
         },
@@ -83,6 +120,7 @@ const WorkoutsScreen = () => {
   // Renderizar item da lista
   const renderWorkoutItem = ({ item }) => {
     const exerciseCount = item.workout_exercises?.length || 0;
+    const isDeleting = deletingId === item.id;
 
     return (
       <TouchableOpacity
@@ -91,6 +129,7 @@ const WorkoutsScreen = () => {
           navigation.navigate("WorkoutDetail", { workoutId: item.id })
         }
         activeOpacity={0.7}
+        disabled={isDeleting}
       >
         <View style={styles.workoutHeader}>
           <View style={styles.workoutIconContainer}>
@@ -111,14 +150,22 @@ const WorkoutsScreen = () => {
           </View>
 
           <TouchableOpacity
-            style={styles.menuButton}
-            onPress={() => handleDeleteWorkout(item.id, item.name)}
+            style={[styles.menuButton, isDeleting && styles.menuButtonDisabled]}
+            onPress={(e) => {
+              e.stopPropagation(); // Previne que abra o detalhe
+              handleDeleteWorkout(item.id, item.name);
+            }}
+            disabled={isDeleting}
           >
-            <Ionicons
-              name="trash-outline"
-              size={20}
-              color={theme.colors.error}
-            />
+            {isDeleting ? (
+              <ActivityIndicator size="small" color={theme.colors.error} />
+            ) : (
+              <Ionicons
+                name="trash-outline"
+                size={20}
+                color={theme.colors.error}
+              />
+            )}
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -131,6 +178,7 @@ const WorkoutsScreen = () => {
       <SafeAreaView style={globalStyles.screenContainer}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={styles.loadingText}>Carregando treinos...</Text>
         </View>
       </SafeAreaView>
     );
@@ -156,6 +204,9 @@ const WorkoutsScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={typography.h1}>Meus Treinos</Text>
+        <Text style={styles.subtitle}>
+          {workouts.length} {workouts.length === 1 ? "treino" : "treinos"}
+        </Text>
       </View>
 
       {/* Lista de Treinos */}
@@ -191,6 +242,12 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: theme.spacing.lg,
   },
+  subtitle: {
+    ...typography.body,
+    fontSize: theme.fontSizes.sm,
+    color: theme.colors.textSecondary,
+    marginTop: 4,
+  },
   listContainer: {
     paddingBottom: 100,
     flexGrow: 1,
@@ -199,6 +256,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  loadingText: {
+    ...typography.body,
+    color: theme.colors.textSecondary,
+    marginTop: theme.spacing.md,
   },
   workoutCard: {
     backgroundColor: theme.colors.surface,
@@ -243,6 +305,12 @@ const styles = StyleSheet.create({
   },
   menuButton: {
     padding: theme.spacing.sm,
+    minWidth: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  menuButtonDisabled: {
+    opacity: 0.5,
   },
   fab: {
     position: "absolute",
