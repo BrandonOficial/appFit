@@ -201,7 +201,8 @@ const WorkoutsScreen = () => {
       const { error } = await deleteWorkout(workoutId);
 
       if (error) {
-        console.error("❌ Erro retornado do Supabase:", error);
+        console.error("❌ ERRO DETALHADO:", JSON.stringify(error, null, 2));
+        Alert.alert("Erro de Banco", error.message || "Erro desconhecido");
         throw error;
       }
 
