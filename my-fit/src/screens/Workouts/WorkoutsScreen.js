@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,6 +20,77 @@ import { globalStyles } from "../../styles/globalStyles";
 import { typography } from "../../styles/typography";
 import { theme } from "../../styles/theme";
 
+/**
+ * Componente de Card de Treino
+ * Separado para melhor controle de eventos
+ */
+const WorkoutCard = ({ item, onPress, onDelete, isDeleting }) => {
+  const exerciseCount = item.workout_exercises?.length || 0;
+
+  const getExerciseCountText = (count) => {
+    return `${count} ${count === 1 ? "exercício" : "exercícios"}`;
+  };
+
+  const handleCardPress = () => {
+    console.log("🔵 Card pressionado:", item.name);
+    onPress(item.id);
+  };
+
+  const handleDeletePress = () => {
+    console.log("🗑️ Botão deletar pressionado:", item.name);
+    onDelete(item.id, item.name);
+  };
+
+  return (
+    <View style={styles.workoutCard}>
+      {/* Área principal clicável */}
+      <Pressable
+        style={styles.workoutMainArea}
+        onPress={handleCardPress}
+        android_ripple={{ color: "rgba(124, 252, 0, 0.1)" }}
+        disabled={isDeleting}
+      >
+        <View style={styles.workoutIconContainer}>
+          <Ionicons name="barbell" size={24} color={theme.colors.primary} />
+        </View>
+
+        <View style={styles.workoutInfo}>
+          <Text style={styles.workoutName}>{item.name}</Text>
+
+          {item.description && (
+            <Text style={styles.workoutDescription} numberOfLines={1}>
+              {item.description}
+            </Text>
+          )}
+
+          <Text style={styles.workoutMeta}>
+            {getExerciseCountText(exerciseCount)}
+            {item.frequency && ` • ${item.frequency}`}
+          </Text>
+        </View>
+      </Pressable>
+
+      {/* Botão de deletar - Completamente separado */}
+      <Pressable
+        style={({ pressed }) => [
+          styles.deleteButton,
+          pressed && styles.deleteButtonPressed,
+          isDeleting && styles.deleteButtonDisabled,
+        ]}
+        onPress={handleDeletePress}
+        disabled={isDeleting}
+        android_ripple={{ color: "rgba(255, 65, 54, 0.2)" }}
+      >
+        {isDeleting ? (
+          <ActivityIndicator size="small" color={theme.colors.error} />
+        ) : (
+          <Ionicons name="trash-outline" size={22} color={theme.colors.error} />
+        )}
+      </Pressable>
+    </View>
+  );
+};
+
 const WorkoutsScreen = () => {
   const navigation = useNavigation();
   const { user } = useAuth();
@@ -28,7 +100,9 @@ const WorkoutsScreen = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
 
-  // Função para carregar os treinos
+  /**
+   * Carrega a lista de treinos do usuário
+   */
   const loadWorkouts = async () => {
     if (!user) return;
 
@@ -52,22 +126,44 @@ const WorkoutsScreen = () => {
     }
   };
 
-  // Carregar treinos quando a tela ganhar foco
   useFocusEffect(
     useCallback(() => {
       loadWorkouts();
     }, [user])
   );
 
-  // Função de refresh
+  /**
+   * Atualiza a lista de treinos (pull-to-refresh)
+   */
   const onRefresh = () => {
     setIsRefreshing(true);
     loadWorkouts();
   };
 
-  // Função para deletar treino - MELHORADA
-  const handleDeleteWorkout = (workoutId, workoutName) => {
-    console.log("🗑️ Preparando para deletar:", workoutId, workoutName);
+  /**
+   * Navega para a tela de detalhes do treino
+   */
+  const navigateToWorkoutDetail = (workoutId) => {
+    console.log("📍 Navegando para detalhes:", workoutId);
+    navigation.navigate("WorkoutDetail", { workoutId });
+  };
+
+  /**
+   * Navega para a tela de criação de treino
+   */
+  const navigateToCreateWorkout = () => {
+    navigation.navigate("CreateWorkout");
+  };
+
+  /**
+   * Exibe o diálogo de confirmação para deletar treino
+   */
+  const confirmDeleteWorkout = (workoutId, workoutName) => {
+    console.log("═══════════════════════════════════════");
+    console.log("🗑️ INICIANDO PROCESSO DE DELEÇÃO");
+    console.log("ID:", workoutId);
+    console.log("Nome:", workoutName);
+    console.log("═══════════════════════════════════════");
 
     Alert.alert(
       "Deletar Treino",
@@ -76,117 +172,79 @@ const WorkoutsScreen = () => {
         {
           text: "Cancelar",
           style: "cancel",
-          onPress: () => console.log("❌ Deleção cancelada"),
+          onPress: () => {
+            console.log("❌ Usuário cancelou a deleção");
+          },
         },
         {
           text: "Deletar",
           style: "destructive",
-          onPress: () => performDelete(workoutId, workoutName),
+          onPress: () => {
+            console.log("✅ Usuário confirmou a deleção");
+            executeDeleteWorkout(workoutId, workoutName);
+          },
         },
-      ]
+      ],
+      { cancelable: true }
     );
   };
 
-  // Função separada para executar a deleção
-  const performDelete = async (workoutId, workoutName) => {
+  /**
+   * Executa a deleção do treino
+   */
+  const executeDeleteWorkout = async (workoutId, workoutName) => {
+    console.log("🔄 Executando deleção...");
+
     try {
-      console.log("🔵 Iniciando deleção:", workoutId);
       setDeletingId(workoutId);
 
       const { error } = await deleteWorkout(workoutId);
 
       if (error) {
-        console.error("❌ Erro ao deletar:", error);
+        console.error("❌ Erro retornado do Supabase:", error);
         throw error;
       }
 
-      console.log("✅ Treino deletado com sucesso");
+      console.log("✅ Treino deletado com sucesso no backend");
 
-      // Atualizar a lista localmente (remover o item)
-      setWorkouts((prev) => prev.filter((w) => w.id !== workoutId));
+      // Atualizar a lista localmente
+      setWorkouts((prevWorkouts) => {
+        const updated = prevWorkouts.filter(
+          (workout) => workout.id !== workoutId
+        );
+        console.log("📋 Lista atualizada. Treinos restantes:", updated.length);
+        return updated;
+      });
 
-      // Mostrar feedback de sucesso
       Alert.alert("Sucesso", `"${workoutName}" foi deletado com sucesso!`);
     } catch (error) {
-      console.error("❌ Erro no delete:", error);
+      console.error("❌ ERRO AO DELETAR:", error);
       Alert.alert(
         "Erro",
         "Não foi possível deletar o treino. Tente novamente."
       );
     } finally {
       setDeletingId(null);
+      console.log("═══════════════════════════════════════\n");
     }
   };
 
-  // Renderizar item da lista - MELHORADO
-  const renderWorkoutItem = ({ item }) => {
-    const exerciseCount = item.workout_exercises?.length || 0;
-    const isDeleting = deletingId === item.id;
+  /**
+   * Renderiza um card de treino
+   */
+  const renderWorkoutCard = ({ item }) => (
+    <WorkoutCard
+      item={item}
+      onPress={navigateToWorkoutDetail}
+      onDelete={confirmDeleteWorkout}
+      isDeleting={deletingId === item.id}
+    />
+  );
 
-    return (
-      <View style={styles.workoutCard}>
-        {/* Área clicável principal */}
-        <TouchableOpacity
-          style={styles.workoutMainArea}
-          onPress={() =>
-            navigation.navigate("WorkoutDetail", { workoutId: item.id })
-          }
-          activeOpacity={0.7}
-          disabled={isDeleting}
-        >
-          <View style={styles.workoutIconContainer}>
-            <Ionicons name="barbell" size={24} color={theme.colors.primary} />
-          </View>
-
-          <View style={styles.workoutInfo}>
-            <Text style={styles.workoutName}>{item.name}</Text>
-            {item.description && (
-              <Text style={styles.workoutDescription} numberOfLines={1}>
-                {item.description}
-              </Text>
-            )}
-            <Text style={styles.workoutMeta}>
-              {exerciseCount} {exerciseCount === 1 ? "exercício" : "exercícios"}
-              {item.frequency && ` • ${item.frequency}`}
-            </Text>
-          </View>
-        </TouchableOpacity>
-
-        {/* Botão de deletar separado */}
-        <TouchableOpacity
-          style={[styles.deleteButton, isDeleting && styles.deleteButtonDisabled]}
-          onPress={() => handleDeleteWorkout(item.id, item.name)}
-          disabled={isDeleting}
-          activeOpacity={0.6}
-        >
-          {isDeleting ? (
-            <ActivityIndicator size="small" color={theme.colors.error} />
-          ) : (
-            <Ionicons
-              name="trash-outline"
-              size={22}
-              color={theme.colors.error}
-            />
-          )}
-        </TouchableOpacity>
-      </View>
-    );
-  };
-
-  // Estado de loading inicial
-  if (isLoading) {
-    return (
-      <SafeAreaView style={globalStyles.screenContainer}>
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>Carregando treinos...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // Lista vazia
-  const EmptyState = () => (
+  /**
+   * Renderiza o estado vazio
+   */
+  const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <Ionicons
         name="barbell-outline"
@@ -199,6 +257,17 @@ const WorkoutsScreen = () => {
       </Text>
     </View>
   );
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={globalStyles.screenContainer}>
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={styles.loadingText}>Carregando treinos...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={globalStyles.screenContainer}>
@@ -213,7 +282,7 @@ const WorkoutsScreen = () => {
       {/* Lista de Treinos */}
       <FlatList
         data={workouts}
-        renderItem={renderWorkoutItem}
+        renderItem={renderWorkoutCard}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
@@ -224,17 +293,17 @@ const WorkoutsScreen = () => {
             tintColor={theme.colors.primary}
           />
         }
-        ListEmptyComponent={EmptyState}
+        ListEmptyComponent={renderEmptyState}
       />
 
-      {/* Botão Flutuante */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => navigation.navigate("CreateWorkout")}
-        activeOpacity={0.8}
+      {/* Floating Action Button */}
+      <Pressable
+        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+        onPress={navigateToCreateWorkout}
+        android_ripple={{ color: "rgba(0, 0, 0, 0.2)" }}
       >
         <Ionicons name="add" size={32} color={theme.colors.background} />
-      </TouchableOpacity>
+      </Pressable>
     </SafeAreaView>
   );
 };
@@ -263,27 +332,28 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.md,
   },
-  
-  // Card do treino - REESTRUTURADO
+
+  // Card do treino
   workoutCard: {
     flexDirection: "row",
-    alignItems: "center",
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
     marginBottom: theme.spacing.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
     overflow: "hidden",
+    // Adiciona elevação para Android
+    elevation: 2,
   },
-  
-  // Área principal (clicável para ver detalhes)
+
+  // Área principal clicável
   workoutMainArea: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     padding: theme.spacing.md,
   },
-  
+
   workoutIconContainer: {
     width: 48,
     height: 48,
@@ -293,47 +363,50 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: theme.spacing.md,
   },
-  
+
   workoutInfo: {
     flex: 1,
   },
-  
+
   workoutName: {
     ...typography.body,
     fontSize: theme.fontSizes.lg,
     fontWeight: "700",
     marginBottom: 4,
   },
-  
+
   workoutDescription: {
     ...typography.body,
     fontSize: theme.fontSizes.sm,
     color: theme.colors.textSecondary,
     marginBottom: 4,
   },
-  
+
   workoutMeta: {
     ...typography.body,
     fontSize: theme.fontSizes.xs,
     color: theme.colors.textSecondary,
   },
-  
-  // Botão de deletar - MELHORADO
+
+  // Botão de deletar
   deleteButton: {
-    width: 56,
-    height: "100%",
+    width: 60,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(255, 65, 54, 0.1)",
     borderLeftWidth: 1,
     borderLeftColor: theme.colors.border,
   },
-  
+
+  deleteButtonPressed: {
+    backgroundColor: "rgba(255, 65, 54, 0.2)",
+  },
+
   deleteButtonDisabled: {
     opacity: 0.5,
   },
-  
-  // FAB
+
+  // Floating Action Button
   fab: {
     position: "absolute",
     right: theme.spacing.lg,
@@ -350,22 +423,26 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
   },
-  
-  // Empty state
+
+  fabPressed: {
+    transform: [{ scale: 0.95 }],
+  },
+
+  // Estado vazio
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: theme.spacing.xxl,
   },
-  
+
   emptyTitle: {
     ...typography.h1,
     fontSize: theme.fontSizes.xl,
     marginTop: theme.spacing.lg,
     marginBottom: theme.spacing.sm,
   },
-  
+
   emptyText: {
     ...typography.body,
     color: theme.colors.textSecondary,
