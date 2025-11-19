@@ -65,73 +65,75 @@ const WorkoutsScreen = () => {
     loadWorkouts();
   };
 
-  // Função para deletar treino (CORRIGIDA)
-  const handleDeleteWorkout = async (workoutId, workoutName) => {
-    console.log("🗑️ Tentando deletar:", workoutId, workoutName);
+  // Função para deletar treino - MELHORADA
+  const handleDeleteWorkout = (workoutId, workoutName) => {
+    console.log("🗑️ Preparando para deletar:", workoutId, workoutName);
 
     Alert.alert(
       "Deletar Treino",
-      `Tem certeza que deseja deletar "${workoutName}"?`,
+      `Tem certeza que deseja deletar "${workoutName}"?\n\nEsta ação não pode ser desfeita.`,
       [
         {
           text: "Cancelar",
           style: "cancel",
-          onPress: () => console.log("❌ Cancelado"),
+          onPress: () => console.log("❌ Deleção cancelada"),
         },
         {
           text: "Deletar",
           style: "destructive",
-          onPress: async () => {
-            try {
-              console.log("🔵 Deletando treino:", workoutId);
-              setDeletingId(workoutId);
-
-              const { error } = await deleteWorkout(workoutId);
-
-              if (error) {
-                console.error("❌ Erro ao deletar:", error);
-                throw error;
-              }
-
-              console.log("✅ Treino deletado com sucesso");
-
-              // Atualizar a lista localmente (otimista)
-              setWorkouts((prev) => prev.filter((w) => w.id !== workoutId));
-
-              // Recarregar para garantir sincronização
-              await loadWorkouts();
-
-              Alert.alert("Sucesso", "Treino deletado com sucesso!");
-            } catch (error) {
-              console.error("❌ Erro no delete:", error);
-              Alert.alert(
-                "Erro",
-                "Não foi possível deletar o treino. Tente novamente."
-              );
-            } finally {
-              setDeletingId(null);
-            }
-          },
+          onPress: () => performDelete(workoutId, workoutName),
         },
       ]
     );
   };
 
-  // Renderizar item da lista
+  // Função separada para executar a deleção
+  const performDelete = async (workoutId, workoutName) => {
+    try {
+      console.log("🔵 Iniciando deleção:", workoutId);
+      setDeletingId(workoutId);
+
+      const { error } = await deleteWorkout(workoutId);
+
+      if (error) {
+        console.error("❌ Erro ao deletar:", error);
+        throw error;
+      }
+
+      console.log("✅ Treino deletado com sucesso");
+
+      // Atualizar a lista localmente (remover o item)
+      setWorkouts((prev) => prev.filter((w) => w.id !== workoutId));
+
+      // Mostrar feedback de sucesso
+      Alert.alert("Sucesso", `"${workoutName}" foi deletado com sucesso!`);
+    } catch (error) {
+      console.error("❌ Erro no delete:", error);
+      Alert.alert(
+        "Erro",
+        "Não foi possível deletar o treino. Tente novamente."
+      );
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  // Renderizar item da lista - MELHORADO
   const renderWorkoutItem = ({ item }) => {
     const exerciseCount = item.workout_exercises?.length || 0;
     const isDeleting = deletingId === item.id;
 
     return (
-      <TouchableOpacity
-        style={styles.workoutCard}
-        onPress={() =>
-          navigation.navigate("WorkoutDetail", { workoutId: item.id })
-        }
-        activeOpacity={0.7}
-        disabled={isDeleting}
-      >
-        <View style={styles.workoutHeader}>
+      <View style={styles.workoutCard}>
+        {/* Área clicável principal */}
+        <TouchableOpacity
+          style={styles.workoutMainArea}
+          onPress={() =>
+            navigation.navigate("WorkoutDetail", { workoutId: item.id })
+          }
+          activeOpacity={0.7}
+          disabled={isDeleting}
+        >
           <View style={styles.workoutIconContainer}>
             <Ionicons name="barbell" size={24} color={theme.colors.primary} />
           </View>
@@ -148,31 +150,30 @@ const WorkoutsScreen = () => {
               {item.frequency && ` • ${item.frequency}`}
             </Text>
           </View>
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.menuButton, isDeleting && styles.menuButtonDisabled]}
-            onPress={(e) => {
-              e.stopPropagation(); // Previne que abra o detalhe
-              handleDeleteWorkout(item.id, item.name);
-            }}
-            disabled={isDeleting}
-          >
-            {isDeleting ? (
-              <ActivityIndicator size="small" color={theme.colors.error} />
-            ) : (
-              <Ionicons
-                name="trash-outline"
-                size={20}
-                color={theme.colors.error}
-              />
-            )}
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
+        {/* Botão de deletar separado */}
+        <TouchableOpacity
+          style={[styles.deleteButton, isDeleting && styles.deleteButtonDisabled]}
+          onPress={() => handleDeleteWorkout(item.id, item.name)}
+          disabled={isDeleting}
+          activeOpacity={0.6}
+        >
+          {isDeleting ? (
+            <ActivityIndicator size="small" color={theme.colors.error} />
+          ) : (
+            <Ionicons
+              name="trash-outline"
+              size={22}
+              color={theme.colors.error}
+            />
+          )}
+        </TouchableOpacity>
+      </View>
     );
   };
 
-  // Estado de loading
+  // Estado de loading inicial
   if (isLoading) {
     return (
       <SafeAreaView style={globalStyles.screenContainer}>
@@ -194,7 +195,7 @@ const WorkoutsScreen = () => {
       />
       <Text style={styles.emptyTitle}>Nenhum Treino</Text>
       <Text style={styles.emptyText}>
-        Comece criando seu primeiro treino{"\n"}tocando no botão abaixo
+        Comece criando seu primeiro treino{"\n"}tocando no botão + abaixo
       </Text>
     </View>
   );
@@ -262,18 +263,27 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.md,
   },
+  
+  // Card do treino - REESTRUTURADO
   workoutCard: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
-    padding: theme.spacing.md,
     marginBottom: theme.spacing.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
+    overflow: "hidden",
   },
-  workoutHeader: {
+  
+  // Área principal (clicável para ver detalhes)
+  workoutMainArea: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    padding: theme.spacing.md,
   },
+  
   workoutIconContainer: {
     width: 48,
     height: 48,
@@ -283,35 +293,47 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: theme.spacing.md,
   },
+  
   workoutInfo: {
     flex: 1,
   },
+  
   workoutName: {
     ...typography.body,
     fontSize: theme.fontSizes.lg,
     fontWeight: "700",
     marginBottom: 4,
   },
+  
   workoutDescription: {
     ...typography.body,
     fontSize: theme.fontSizes.sm,
     color: theme.colors.textSecondary,
     marginBottom: 4,
   },
+  
   workoutMeta: {
     ...typography.body,
     fontSize: theme.fontSizes.xs,
     color: theme.colors.textSecondary,
   },
-  menuButton: {
-    padding: theme.spacing.sm,
-    minWidth: 40,
-    alignItems: "center",
+  
+  // Botão de deletar - MELHORADO
+  deleteButton: {
+    width: 56,
+    height: "100%",
     justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 65, 54, 0.1)",
+    borderLeftWidth: 1,
+    borderLeftColor: theme.colors.border,
   },
-  menuButtonDisabled: {
+  
+  deleteButtonDisabled: {
     opacity: 0.5,
   },
+  
+  // FAB
   fab: {
     position: "absolute",
     right: theme.spacing.lg,
@@ -328,18 +350,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
   },
+  
+  // Empty state
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: theme.spacing.xxl,
   },
+  
   emptyTitle: {
     ...typography.h1,
     fontSize: theme.fontSizes.xl,
     marginTop: theme.spacing.lg,
     marginBottom: theme.spacing.sm,
   },
+  
   emptyText: {
     ...typography.body,
     color: theme.colors.textSecondary,
