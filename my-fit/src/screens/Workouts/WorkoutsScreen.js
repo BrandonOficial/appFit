@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Alert,
   Pressable,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,14 +20,61 @@ import { getWorkouts, deleteWorkout } from "../../services/supabase/workouts";
 import { globalStyles } from "../../styles/globalStyles";
 import { typography } from "../../styles/typography";
 import { theme } from "../../styles/theme";
+import Button from "../../components/common/Button";
+
+/**
+ * Modal de Confirmação de Deleção
+ */
+const DeleteConfirmationModal = ({ visible, workoutName, onConfirm, onCancel }) => {
+  return (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={onCancel}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalIconContainer}>
+            <Ionicons name="warning" size={48} color={theme.colors.error} />
+          </View>
+
+          <Text style={styles.modalTitle}>Deletar Treino</Text>
+          
+          <Text style={styles.modalMessage}>
+            Tem certeza que deseja deletar{"\n"}
+            <Text style={styles.modalWorkoutName}>"{workoutName}"</Text>?
+            {"\n\n"}
+            Esta ação não pode ser desfeita.
+          </Text>
+
+          <View style={styles.modalButtons}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonCancel]}
+              onPress={onCancel}
+            >
+              <Text style={styles.modalButtonTextCancel}>Cancelar</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonConfirm]}
+              onPress={onConfirm}
+            >
+              <Text style={styles.modalButtonTextConfirm}>Deletar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
 
 /**
  * Componente de Card de Treino
- * Separado para melhor controle de eventos
  */
 const WorkoutCard = ({ item, onPress, onDelete, isDeleting }) => {
   const exerciseCount = item.workout_exercises?.length || 0;
-
+  
   const getExerciseCountText = (count) => {
     return `${count} ${count === 1 ? "exercício" : "exercícios"}`;
   };
@@ -47,7 +95,7 @@ const WorkoutCard = ({ item, onPress, onDelete, isDeleting }) => {
       <Pressable
         style={styles.workoutMainArea}
         onPress={handleCardPress}
-        android_ripple={{ color: "rgba(124, 252, 0, 0.1)" }}
+        android_ripple={{ color: 'rgba(124, 252, 0, 0.1)' }}
         disabled={isDeleting}
       >
         <View style={styles.workoutIconContainer}>
@@ -56,13 +104,13 @@ const WorkoutCard = ({ item, onPress, onDelete, isDeleting }) => {
 
         <View style={styles.workoutInfo}>
           <Text style={styles.workoutName}>{item.name}</Text>
-
+          
           {item.description && (
             <Text style={styles.workoutDescription} numberOfLines={1}>
               {item.description}
             </Text>
           )}
-
+          
           <Text style={styles.workoutMeta}>
             {getExerciseCountText(exerciseCount)}
             {item.frequency && ` • ${item.frequency}`}
@@ -70,7 +118,7 @@ const WorkoutCard = ({ item, onPress, onDelete, isDeleting }) => {
         </View>
       </Pressable>
 
-      {/* Botão de deletar - Completamente separado */}
+      {/* Botão de deletar */}
       <Pressable
         style={({ pressed }) => [
           styles.deleteButton,
@@ -79,12 +127,16 @@ const WorkoutCard = ({ item, onPress, onDelete, isDeleting }) => {
         ]}
         onPress={handleDeletePress}
         disabled={isDeleting}
-        android_ripple={{ color: "rgba(255, 65, 54, 0.2)" }}
+        android_ripple={{ color: 'rgba(255, 65, 54, 0.2)' }}
       >
         {isDeleting ? (
           <ActivityIndicator size="small" color={theme.colors.error} />
         ) : (
-          <Ionicons name="trash-outline" size={22} color={theme.colors.error} />
+          <Ionicons
+            name="trash-outline"
+            size={22}
+            color={theme.colors.error}
+          />
         )}
       </Pressable>
     </View>
@@ -99,6 +151,10 @@ const WorkoutsScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  
+  // Estado do modal de confirmação
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [workoutToDelete, setWorkoutToDelete] = useState(null);
 
   /**
    * Carrega a lista de treinos do usuário
@@ -156,7 +212,7 @@ const WorkoutsScreen = () => {
   };
 
   /**
-   * Exibe o diálogo de confirmação para deletar treino
+   * Abre o modal de confirmação de deleção
    */
   const confirmDeleteWorkout = (workoutId, workoutName) => {
     console.log("═══════════════════════════════════════");
@@ -165,28 +221,29 @@ const WorkoutsScreen = () => {
     console.log("Nome:", workoutName);
     console.log("═══════════════════════════════════════");
 
-    Alert.alert(
-      "Deletar Treino",
-      `Tem certeza que deseja deletar "${workoutName}"?\n\nEsta ação não pode ser desfeita.`,
-      [
-        {
-          text: "Cancelar",
-          style: "cancel",
-          onPress: () => {
-            console.log("❌ Usuário cancelou a deleção");
-          },
-        },
-        {
-          text: "Deletar",
-          style: "destructive",
-          onPress: () => {
-            console.log("✅ Usuário confirmou a deleção");
-            executeDeleteWorkout(workoutId, workoutName);
-          },
-        },
-      ],
-      { cancelable: true }
-    );
+    setWorkoutToDelete({ id: workoutId, name: workoutName });
+    setShowDeleteModal(true);
+  };
+
+  /**
+   * Cancela a deleção
+   */
+  const handleCancelDelete = () => {
+    console.log("❌ Usuário cancelou a deleção");
+    setShowDeleteModal(false);
+    setWorkoutToDelete(null);
+  };
+
+  /**
+   * Confirma e executa a deleção
+   */
+  const handleConfirmDelete = () => {
+    console.log("✅ Usuário confirmou a deleção");
+    setShowDeleteModal(false);
+    
+    if (workoutToDelete) {
+      executeDeleteWorkout(workoutToDelete.id, workoutToDelete.name);
+    }
   };
 
   /**
@@ -194,15 +251,14 @@ const WorkoutsScreen = () => {
    */
   const executeDeleteWorkout = async (workoutId, workoutName) => {
     console.log("🔄 Executando deleção...");
-
+    
     try {
       setDeletingId(workoutId);
 
       const { error } = await deleteWorkout(workoutId);
 
       if (error) {
-        console.error("❌ ERRO DETALHADO:", JSON.stringify(error, null, 2));
-        Alert.alert("Erro de Banco", error.message || "Erro desconhecido");
+        console.error("❌ Erro retornado do Supabase:", error);
         throw error;
       }
 
@@ -210,14 +266,16 @@ const WorkoutsScreen = () => {
 
       // Atualizar a lista localmente
       setWorkouts((prevWorkouts) => {
-        const updated = prevWorkouts.filter(
-          (workout) => workout.id !== workoutId
-        );
+        const updated = prevWorkouts.filter((workout) => workout.id !== workoutId);
         console.log("📋 Lista atualizada. Treinos restantes:", updated.length);
         return updated;
       });
 
-      Alert.alert("Sucesso", `"${workoutName}" foi deletado com sucesso!`);
+      // Mostrar feedback de sucesso
+      setTimeout(() => {
+        Alert.alert("Sucesso", `"${workoutName}" foi deletado com sucesso!`);
+      }, 300);
+
     } catch (error) {
       console.error("❌ ERRO AO DELETAR:", error);
       Alert.alert(
@@ -226,6 +284,7 @@ const WorkoutsScreen = () => {
       );
     } finally {
       setDeletingId(null);
+      setWorkoutToDelete(null);
       console.log("═══════════════════════════════════════\n");
     }
   };
@@ -299,12 +358,23 @@ const WorkoutsScreen = () => {
 
       {/* Floating Action Button */}
       <Pressable
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+        style={({ pressed }) => [
+          styles.fab,
+          pressed && styles.fabPressed,
+        ]}
         onPress={navigateToCreateWorkout}
-        android_ripple={{ color: "rgba(0, 0, 0, 0.2)" }}
+        android_ripple={{ color: 'rgba(0, 0, 0, 0.2)' }}
       >
         <Ionicons name="add" size={32} color={theme.colors.background} />
       </Pressable>
+
+      {/* Modal de Confirmação de Deleção */}
+      <DeleteConfirmationModal
+        visible={showDeleteModal}
+        workoutName={workoutToDelete?.name || ""}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
     </SafeAreaView>
   );
 };
@@ -343,11 +413,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border,
     overflow: "hidden",
-    // Adiciona elevação para Android
     elevation: 2,
   },
 
-  // Área principal clicável
   workoutMainArea: {
     flex: 1,
     flexDirection: "row",
@@ -389,7 +457,6 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
 
-  // Botão de deletar
   deleteButton: {
     width: 60,
     justifyContent: "center",
@@ -449,6 +516,96 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: "center",
     lineHeight: 22,
+  },
+
+  // Modal de Confirmação
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: theme.spacing.lg,
+  },
+
+  modalContent: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: theme.spacing.xl,
+    width: "100%",
+    maxWidth: 400,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+
+  modalIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255, 65, 54, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: theme.spacing.lg,
+  },
+
+  modalTitle: {
+    ...typography.h1,
+    fontSize: theme.fontSizes.xl,
+    marginBottom: theme.spacing.md,
+    textAlign: "center",
+  },
+
+  modalMessage: {
+    ...typography.body,
+    fontSize: theme.fontSizes.md,
+    color: theme.colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 24,
+    marginBottom: theme.spacing.xl,
+  },
+
+  modalWorkoutName: {
+    color: theme.colors.text,
+    fontWeight: "700",
+  },
+
+  modalButtons: {
+    flexDirection: "row",
+    gap: theme.spacing.md,
+    width: "100%",
+  },
+
+  modalButton: {
+    flex: 1,
+    paddingVertical: theme.spacing.md,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 48,
+  },
+
+  modalButtonCancel: {
+    backgroundColor: theme.colors.background,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+
+  modalButtonConfirm: {
+    backgroundColor: theme.colors.error,
+  },
+
+  modalButtonTextCancel: {
+    ...typography.body,
+    fontSize: theme.fontSizes.md,
+    fontWeight: "700",
+    color: theme.colors.text,
+  },
+
+  modalButtonTextConfirm: {
+    ...typography.body,
+    fontSize: theme.fontSizes.md,
+    fontWeight: "700",
+    color: theme.colors.background,
   },
 });
 
