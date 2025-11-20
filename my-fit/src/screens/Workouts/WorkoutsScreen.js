@@ -11,7 +11,6 @@ import {
   Pressable,
   Modal,
   TextInput,
-  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,9 +22,147 @@ import { globalStyles } from "../../styles/globalStyles";
 import { typography } from "../../styles/typography";
 import { theme } from "../../styles/theme";
 
-/**
- * Modal de Confirmação de Deleção
- */
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+const AVATAR_COLORS = [
+  "rgba(124, 252, 0, 0.2)", // Verde
+  "rgba(255, 159, 64, 0.2)", // Laranja
+  "rgba(54, 162, 235, 0.2)", // Azul
+  "rgba(255, 99, 132, 0.2)", // Rosa
+  "rgba(153, 102, 255, 0.2)", // Roxo
+];
+
+const WORKOUT_EMOJIS = {
+  cardio: "🏃",
+  corrida: "🏃",
+  peito: "💪",
+  supino: "💪",
+  perna: "🦵",
+  agachamento: "🦵",
+  costas: "🏋️",
+  alongamento: "🧘",
+  flexibilidade: "🧘",
+  default: "💪",
+};
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+const getExerciseCountText = (count) => {
+  return `${count} ${count === 1 ? "exercício" : "exercícios"}`;
+};
+
+const getBackgroundColor = (id) => {
+  const index = parseInt(id.substring(0, 8), 16) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[index];
+};
+
+const getWorkoutEmoji = (name) => {
+  const lowerName = name.toLowerCase();
+
+  for (const [key, emoji] of Object.entries(WORKOUT_EMOJIS)) {
+    if (key !== "default" && lowerName.includes(key)) {
+      return emoji;
+    }
+  }
+
+  return WORKOUT_EMOJIS.default;
+};
+
+// ============================================================================
+// ACTION MENU MODAL COMPONENT
+// ============================================================================
+
+const ActionMenuModal = ({
+  visible,
+  workoutName,
+  onEdit,
+  onDelete,
+  onClose,
+}) => {
+  return (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <Pressable style={styles.menuOverlay} onPress={onClose}>
+        <View style={styles.menuContent}>
+          {/* Header */}
+          <View style={styles.menuHeader}>
+            <Text style={styles.menuTitle} numberOfLines={1}>
+              {workoutName}
+            </Text>
+            <TouchableOpacity
+              onPress={onClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close" size={24} color={theme.colors.text} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Menu Items */}
+          <View style={styles.menuItems}>
+            {/* Editar */}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={onEdit}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuIconContainer}>
+                <Ionicons
+                  name="create-outline"
+                  size={24}
+                  color={theme.colors.primary}
+                />
+              </View>
+              <Text style={styles.menuItemText}>Editar Treino</Text>
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={theme.colors.textSecondary}
+              />
+            </TouchableOpacity>
+
+            <View style={styles.menuDivider} />
+
+            {/* Deletar */}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={onDelete}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.menuIconContainer, styles.menuIconDanger]}>
+                <Ionicons
+                  name="trash-outline"
+                  size={24}
+                  color={theme.colors.error}
+                />
+              </View>
+              <Text style={[styles.menuItemText, styles.menuItemTextDanger]}>
+                Deletar Treino
+              </Text>
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={theme.colors.textSecondary}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Pressable>
+    </Modal>
+  );
+};
+
+// ============================================================================
+// DELETE CONFIRMATION MODAL COMPONENT
+// ============================================================================
+
 const DeleteConfirmationModal = ({
   visible,
   workoutName,
@@ -75,46 +212,12 @@ const DeleteConfirmationModal = ({
   );
 };
 
-/**
- * Componente de Card de Treino - Design Atualizado
- */
+// ============================================================================
+// WORKOUT CARD COMPONENT
+// ============================================================================
+
 const WorkoutCard = ({ item, onPress, onOpenMenu, isDeleting }) => {
   const exerciseCount = item.workout_exercises?.length || 0;
-
-  const getExerciseCountText = (count) => {
-    return `${count} ${count === 1 ? "exercício" : "exercícios"}`;
-  };
-
-  // Gerar cor de fundo aleatória baseada no ID
-  const getBackgroundColor = (id) => {
-    const colors = [
-      "rgba(124, 252, 0, 0.2)", // Verde
-      "rgba(255, 159, 64, 0.2)", // Laranja
-      "rgba(54, 162, 235, 0.2)", // Azul
-      "rgba(255, 99, 132, 0.2)", // Rosa
-      "rgba(153, 102, 255, 0.2)", // Roxo
-    ];
-    const index = parseInt(id.substring(0, 8), 16) % colors.length;
-    return colors[index];
-  };
-
-  // Gerar emoji baseado no nome do treino
-  const getWorkoutEmoji = (name) => {
-    const lowerName = name.toLowerCase();
-    if (lowerName.includes("cardio") || lowerName.includes("corrida"))
-      return "🏃";
-    if (lowerName.includes("peito") || lowerName.includes("supino"))
-      return "💪";
-    if (lowerName.includes("perna") || lowerName.includes("agachamento"))
-      return "🦵";
-    if (lowerName.includes("costas")) return "🏋️";
-    if (
-      lowerName.includes("alongamento") ||
-      lowerName.includes("flexibilidade")
-    )
-      return "🧘";
-    return "💪"; // Default
-  };
 
   return (
     <Pressable
@@ -125,7 +228,7 @@ const WorkoutCard = ({ item, onPress, onOpenMenu, isDeleting }) => {
       onPress={() => onPress(item.id)}
       disabled={isDeleting}
     >
-      {/* Imagem/Avatar do Treino */}
+      {/* Avatar do Treino */}
       <View
         style={[
           styles.workoutAvatar,
@@ -170,10 +273,15 @@ const WorkoutCard = ({ item, onPress, onOpenMenu, isDeleting }) => {
   );
 };
 
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
 const WorkoutsScreen = () => {
   const navigation = useNavigation();
   const { user } = useAuth();
 
+  // State Management
   const [workouts, setWorkouts] = useState([]);
   const [filteredWorkouts, setFilteredWorkouts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -181,14 +289,15 @@ const WorkoutsScreen = () => {
   const [deletingId, setDeletingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchVisible, setIsSearchVisible] = useState(false);
-
-  // Estado do modal de confirmação
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [workoutToDelete, setWorkoutToDelete] = useState(null);
+  const [showActionMenu, setShowActionMenu] = useState(false);
+  const [selectedWorkout, setSelectedWorkout] = useState(null);
 
-  /**
-   * Carrega a lista de treinos do usuário
-   */
+  // ============================================================================
+  // DATA LOADING
+  // ============================================================================
+
   const loadWorkouts = async () => {
     if (!user) return;
 
@@ -214,109 +323,91 @@ const WorkoutsScreen = () => {
     }, [user])
   );
 
-  /**
-   * Filtra os treinos baseado na busca
-   */
+  // ============================================================================
+  // SEARCH FUNCTIONALITY
+  // ============================================================================
+
   useEffect(() => {
     if (searchQuery.trim() === "") {
       setFilteredWorkouts(workouts);
-    } else {
-      const query = searchQuery.toLowerCase();
-      const filtered = workouts.filter(
-        (workout) =>
-          workout.name.toLowerCase().includes(query) ||
-          workout.description?.toLowerCase().includes(query) ||
-          workout.frequency?.toLowerCase().includes(query)
-      );
-      setFilteredWorkouts(filtered);
+      return;
     }
+
+    const query = searchQuery.toLowerCase();
+    const filtered = workouts.filter(
+      (workout) =>
+        workout.name.toLowerCase().includes(query) ||
+        workout.description?.toLowerCase().includes(query) ||
+        workout.frequency?.toLowerCase().includes(query)
+    );
+    setFilteredWorkouts(filtered);
   }, [searchQuery, workouts]);
 
-  /**
-   * Atualiza a lista de treinos (pull-to-refresh)
-   */
-  const onRefresh = () => {
-    setIsRefreshing(true);
-    loadWorkouts();
+  const toggleSearch = () => {
+    setIsSearchVisible(!isSearchVisible);
+    if (isSearchVisible) {
+      setSearchQuery("");
+    }
   };
 
-  /**
-   * Navega para a tela de detalhes do treino
-   */
+  // ============================================================================
+  // NAVIGATION HANDLERS
+  // ============================================================================
+
   const navigateToWorkoutDetail = (workoutId) => {
     navigation.navigate("WorkoutDetail", { workoutId });
   };
 
-  /**
-   * Navega para a tela de criação de treino
-   */
   const navigateToCreateWorkout = () => {
     navigation.navigate("CreateWorkout");
   };
 
-  /**
-   * Estado do menu de ações
-   */
-  const [menuVisible, setMenuVisible] = useState(false);
-  const [selectedWorkout, setSelectedWorkout] = useState(null);
+  // ============================================================================
+  // MENU HANDLERS
+  // ============================================================================
 
-  /**
-   * Abre o menu de ações (editar/deletar)
-   */
   const openWorkoutMenu = (workoutId, workoutName) => {
     setSelectedWorkout({ id: workoutId, name: workoutName });
-    setMenuVisible(true);
+    setShowActionMenu(true);
   };
 
-  /**
-   * Fecha o menu de ações
-   */
-  const closeWorkoutMenu = () => {
-    setMenuVisible(false);
-    setSelectedWorkout(null);
+  const closeActionMenu = () => {
+    setShowActionMenu(false);
+    setTimeout(() => setSelectedWorkout(null), 300);
   };
 
-  /**
-   * Navega para editar treino
-   */
   const handleEditWorkout = () => {
     if (selectedWorkout) {
-      closeWorkoutMenu();
-      navigation.navigate("CreateWorkout", { workoutId: selectedWorkout.id });
+      closeActionMenu();
+      setTimeout(() => {
+        navigation.navigate("CreateWorkout", { workoutId: selectedWorkout.id });
+      }, 300);
     }
   };
 
-  /**
-   * Inicia processo de deleção
-   */
   const handleDeleteFromMenu = () => {
     if (selectedWorkout) {
-      closeWorkoutMenu();
+      closeActionMenu();
       setTimeout(() => {
         confirmDeleteWorkout(selectedWorkout.id, selectedWorkout.name);
       }, 300);
     }
   };
 
-  /**
-   * Abre o modal de confirmação de deleção
-   */
+  // ============================================================================
+  // DELETE HANDLERS
+  // ============================================================================
+
   const confirmDeleteWorkout = (workoutId, workoutName) => {
     setWorkoutToDelete({ id: workoutId, name: workoutName });
     setShowDeleteModal(true);
   };
 
-  /**
-   * Cancela a deleção
-   */
   const handleCancelDelete = () => {
     setShowDeleteModal(false);
     setWorkoutToDelete(null);
   };
 
-  /**
-   * Confirma e executa a deleção
-   */
   const handleConfirmDelete = () => {
     setShowDeleteModal(false);
 
@@ -325,9 +416,6 @@ const WorkoutsScreen = () => {
     }
   };
 
-  /**
-   * Executa a deleção do treino
-   */
   const executeDeleteWorkout = async (workoutId, workoutName) => {
     try {
       setDeletingId(workoutId);
@@ -336,7 +424,6 @@ const WorkoutsScreen = () => {
 
       if (error) throw error;
 
-      // Atualizar a lista localmente
       setWorkouts((prev) => prev.filter((w) => w.id !== workoutId));
       setFilteredWorkouts((prev) => prev.filter((w) => w.id !== workoutId));
 
@@ -352,19 +439,19 @@ const WorkoutsScreen = () => {
     }
   };
 
-  /**
-   * Alterna a visibilidade da busca
-   */
-  const toggleSearch = () => {
-    setIsSearchVisible(!isSearchVisible);
-    if (isSearchVisible) {
-      setSearchQuery("");
-    }
+  // ============================================================================
+  // REFRESH HANDLER
+  // ============================================================================
+
+  const onRefresh = () => {
+    setIsRefreshing(true);
+    loadWorkouts();
   };
 
-  /**
-   * Renderiza um card de treino
-   */
+  // ============================================================================
+  // RENDER FUNCTIONS
+  // ============================================================================
+
   const renderWorkoutCard = ({ item }) => (
     <WorkoutCard
       item={item}
@@ -374,9 +461,6 @@ const WorkoutsScreen = () => {
     />
   );
 
-  /**
-   * Renderiza o estado vazio
-   */
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <Ionicons
@@ -395,6 +479,10 @@ const WorkoutsScreen = () => {
     </View>
   );
 
+  // ============================================================================
+  // LOADING STATE
+  // ============================================================================
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -406,9 +494,13 @@ const WorkoutsScreen = () => {
     );
   }
 
+  // ============================================================================
+  // MAIN RENDER
+  // ============================================================================
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header com Título e Busca */}
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Meus Treinos</Text>
         <TouchableOpacity
@@ -473,7 +565,7 @@ const WorkoutsScreen = () => {
         ListEmptyComponent={renderEmptyState}
       />
 
-      {/* Floating Action Button */}
+      {/* FAB */}
       <Pressable
         style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         onPress={navigateToCreateWorkout}
@@ -481,7 +573,16 @@ const WorkoutsScreen = () => {
         <Ionicons name="add" size={32} color={theme.colors.background} />
       </Pressable>
 
-      {/* Modal de Confirmação de Deleção */}
+      {/* Action Menu Modal */}
+      <ActionMenuModal
+        visible={showActionMenu}
+        workoutName={selectedWorkout?.name || ""}
+        onEdit={handleEditWorkout}
+        onDelete={handleDeleteFromMenu}
+        onClose={closeActionMenu}
+      />
+
+      {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
         visible={showDeleteModal}
         workoutName={workoutToDelete?.name || ""}
@@ -491,6 +592,10 @@ const WorkoutsScreen = () => {
     </SafeAreaView>
   );
 };
+
+// ============================================================================
+// STYLES
+// ============================================================================
 
 const styles = StyleSheet.create({
   container: {
@@ -564,16 +669,15 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.md,
   },
 
-  // Card do Treino - Novo Design
+  // Card - Transparente
   workoutCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.surface,
+    backgroundColor: "transparent",
     borderRadius: 16,
     padding: theme.spacing.md,
     marginBottom: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderWidth: 0,
   },
 
   workoutCardPressed: {
@@ -642,7 +746,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.95 }],
   },
 
-  // Estado vazio
+  // Empty State
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
@@ -664,7 +768,83 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 
-  // Modal de Confirmação
+  // Action Menu Modal
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+
+  menuContent: {
+    backgroundColor: theme.colors.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: theme.spacing.xl,
+  },
+
+  menuHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+
+  menuTitle: {
+    ...typography.body,
+    fontSize: theme.fontSizes.lg,
+    fontWeight: "700",
+    flex: 1,
+    marginRight: theme.spacing.md,
+  },
+
+  menuItems: {
+    paddingTop: theme.spacing.sm,
+  },
+
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    minHeight: 60,
+  },
+
+  menuIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: "rgba(124, 252, 0, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: theme.spacing.md,
+  },
+
+  menuIconDanger: {
+    backgroundColor: "rgba(255, 65, 54, 0.1)",
+  },
+
+  menuItemText: {
+    ...typography.body,
+    fontSize: theme.fontSizes.md,
+    fontWeight: "600",
+    flex: 1,
+  },
+
+  menuItemTextDanger: {
+    color: theme.colors.error,
+  },
+
+  menuDivider: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+    marginLeft: 72,
+  },
+
+  // Delete Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.7)",

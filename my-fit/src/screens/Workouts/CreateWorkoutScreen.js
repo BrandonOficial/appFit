@@ -29,6 +29,224 @@ import Button from "../../components/common/Button";
 import { theme } from "../../styles/theme";
 import { typography } from "../../styles/typography";
 
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+const MUSCLE_GROUPS = [
+  { id: null, name: "Todos" },
+  { id: "peito", name: "Peito" },
+  { id: "costas", name: "Costas" },
+  { id: "pernas", name: "Pernas" },
+  { id: "ombros", name: "Ombros" },
+  { id: "braços", name: "Braços" },
+  { id: "abdomen", name: "Abdômen" },
+];
+
+// ============================================================================
+// EXERCISE MODAL COMPONENT
+// ============================================================================
+
+const ExerciseModal = ({
+  visible,
+  onClose,
+  onAddExercise,
+  availableExercises,
+  searchQuery,
+  setSearchQuery,
+  selectedMuscleGroup,
+  setSelectedMuscleGroup,
+}) => {
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          {/* Header */}
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Adicionar Exercício</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="close" size={28} color={theme.colors.text} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
+            <Ionicons
+              name="search"
+              size={20}
+              color={theme.colors.textSecondary}
+              style={styles.searchIcon}
+            />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar exercício..."
+              placeholderTextColor={theme.colors.textSecondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery("")}>
+                <Ionicons
+                  name="close-circle"
+                  size={20}
+                  color={theme.colors.textSecondary}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Muscle Group Filters */}
+          <View style={styles.filtersWrapper}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filtersContainer}
+            >
+              {MUSCLE_GROUPS.map((group) => (
+                <TouchableOpacity
+                  key={group.id || "all"}
+                  style={[
+                    styles.filterButton,
+                    selectedMuscleGroup === group.id &&
+                      styles.filterButtonActive,
+                  ]}
+                  onPress={() => setSelectedMuscleGroup(group.id)}
+                >
+                  <Text
+                    style={[
+                      styles.filterText,
+                      selectedMuscleGroup === group.id &&
+                        styles.filterTextActive,
+                    ]}
+                  >
+                    {group.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          {/* Exercise List */}
+          <FlatList
+            data={availableExercises}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.exerciseOption}
+                onPress={() => onAddExercise(item)}
+              >
+                <View style={styles.exerciseOptionIconContainer}>
+                  <Ionicons
+                    name="fitness"
+                    size={20}
+                    color={theme.colors.primary}
+                  />
+                </View>
+                <View style={styles.exerciseOptionInfo}>
+                  <Text style={styles.exerciseOptionName}>{item.name}</Text>
+                  <Text style={styles.exerciseOptionMuscle}>
+                    {item.muscle_group}
+                  </Text>
+                </View>
+                <Ionicons
+                  name="add-circle"
+                  size={24}
+                  color={theme.colors.primary}
+                />
+              </TouchableOpacity>
+            )}
+            contentContainerStyle={styles.exerciseList}
+            showsVerticalScrollIndicator={false}
+          />
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+// ============================================================================
+// EXERCISE CARD COMPONENT
+// ============================================================================
+
+const ExerciseCard = ({ exercise, index, onUpdate, onRemove }) => {
+  return (
+    <View style={styles.exerciseCard}>
+      <View style={styles.exerciseHeader}>
+        <View style={styles.exerciseIconContainer}>
+          <Ionicons name="fitness" size={20} color={theme.colors.primary} />
+        </View>
+        <Text style={styles.exerciseName}>{exercise.name}</Text>
+        <TouchableOpacity onPress={() => onRemove(index)}>
+          <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.exerciseParams}>
+        <View style={styles.paramRow}>
+          <View style={styles.paramItem}>
+            <Text style={styles.paramLabel}>Séries</Text>
+            <TextInput
+              style={styles.paramInput}
+              value={String(exercise.sets)}
+              onChangeText={(text) =>
+                onUpdate(index, "sets", parseInt(text) || 0)
+              }
+              keyboardType="number-pad"
+            />
+          </View>
+
+          <View style={styles.paramItem}>
+            <Text style={styles.paramLabel}>Repetições</Text>
+            <TextInput
+              style={styles.paramInput}
+              value={String(exercise.reps)}
+              onChangeText={(text) =>
+                onUpdate(index, "reps", parseInt(text) || 0)
+              }
+              keyboardType="number-pad"
+            />
+          </View>
+        </View>
+
+        <View style={styles.paramRow}>
+          <View style={styles.paramItem}>
+            <Text style={styles.paramLabel}>Carga (kg)</Text>
+            <TextInput
+              style={styles.paramInput}
+              value={String(exercise.weight)}
+              onChangeText={(text) =>
+                onUpdate(index, "weight", parseInt(text) || 0)
+              }
+              keyboardType="number-pad"
+            />
+          </View>
+
+          <View style={styles.paramItem}>
+            <Text style={styles.paramLabel}>Descanso (s)</Text>
+            <TextInput
+              style={styles.paramInput}
+              value={String(exercise.rest_seconds)}
+              onChangeText={(text) =>
+                onUpdate(index, "rest_seconds", parseInt(text) || 0)
+              }
+              keyboardType="number-pad"
+            />
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+};
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
 const CreateWorkoutScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
@@ -37,25 +255,33 @@ const CreateWorkoutScreen = () => {
   const workoutId = route.params?.workoutId;
   const isEditing = !!workoutId;
 
+  // State Management
   const [workoutName, setWorkoutName] = useState("");
   const [workoutDescription, setWorkoutDescription] = useState("");
   const [frequency, setFrequency] = useState("");
   const [exercises, setExercises] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Modal de adicionar exercício
+  // Modal State
   const [showExerciseModal, setShowExerciseModal] = useState(false);
   const [availableExercises, setAvailableExercises] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState(null);
 
-  // Carregar treino se estiver editando
+  // ============================================================================
+  // DATA LOADING
+  // ============================================================================
+
   useEffect(() => {
     if (isEditing) {
       loadWorkout();
     }
     loadAvailableExercises();
   }, []);
+
+  useEffect(() => {
+    loadAvailableExercises();
+  }, [searchQuery, selectedMuscleGroup]);
 
   const loadWorkout = async () => {
     const { data, error } = await getWorkoutById(workoutId);
@@ -69,7 +295,6 @@ const CreateWorkoutScreen = () => {
     setWorkoutDescription(data.description || "");
     setFrequency(data.frequency || "");
 
-    // Mapear exercícios
     const mappedExercises = data.workout_exercises.map((we) => ({
       id: we.id,
       exercise_id: we.exercises.id,
@@ -95,9 +320,9 @@ const CreateWorkoutScreen = () => {
     }
   };
 
-  useEffect(() => {
-    loadAvailableExercises();
-  }, [searchQuery, selectedMuscleGroup]);
+  // ============================================================================
+  // HANDLERS
+  // ============================================================================
 
   const handleSaveWorkout = async () => {
     if (!workoutName.trim()) {
@@ -115,7 +340,6 @@ const CreateWorkoutScreen = () => {
     try {
       let finalWorkoutId = workoutId;
 
-      // Criar ou atualizar treino
       if (isEditing) {
         await updateWorkout(workoutId, {
           name: workoutName,
@@ -132,12 +356,10 @@ const CreateWorkoutScreen = () => {
         finalWorkoutId = data.id;
       }
 
-      // Adicionar/atualizar exercícios
       for (let i = 0; i < exercises.length; i++) {
         const exercise = exercises[i];
 
         if (exercise.id) {
-          // Atualizar existente
           await updateWorkoutExercise(exercise.id, {
             sets: exercise.sets,
             reps: exercise.reps,
@@ -146,7 +368,6 @@ const CreateWorkoutScreen = () => {
             order_index: i,
           });
         } else {
-          // Adicionar novo
           await addExerciseToWorkout(finalWorkoutId, {
             exercise_id: exercise.exercise_id,
             sets: exercise.sets,
@@ -190,7 +411,6 @@ const CreateWorkoutScreen = () => {
     const exercise = exercises[index];
 
     if (exercise.id) {
-      // Se já existe no BD, deletar
       await removeExerciseFromWorkout(exercise.id);
     }
 
@@ -204,181 +424,9 @@ const CreateWorkoutScreen = () => {
     setExercises(newExercises);
   };
 
-  const muscleGroups = [
-    { id: null, name: "Todos" },
-    { id: "peito", name: "Peito" },
-    { id: "costas", name: "Costas" },
-    { id: "pernas", name: "Pernas" },
-    { id: "ombros", name: "Ombros" },
-    { id: "braços", name: "Braços" },
-    { id: "abdomen", name: "Abdômen" },
-  ];
-
-  // Renderizar exercício adicionado
-  const renderExerciseItem = (exercise, index) => (
-    <View key={index} style={styles.exerciseCard}>
-      <View style={styles.exerciseHeader}>
-        <View style={styles.exerciseIconContainer}>
-          <Ionicons name="fitness" size={20} color={theme.colors.primary} />
-        </View>
-        <Text style={styles.exerciseName}>{exercise.name}</Text>
-        <TouchableOpacity onPress={() => handleRemoveExercise(index)}>
-          <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.exerciseParams}>
-        <View style={styles.paramRow}>
-          <View style={styles.paramItem}>
-            <Text style={styles.paramLabel}>Séries</Text>
-            <TextInput
-              style={styles.paramInput}
-              value={String(exercise.sets)}
-              onChangeText={(text) =>
-                handleUpdateExercise(index, "sets", parseInt(text) || 0)
-              }
-              keyboardType="number-pad"
-            />
-          </View>
-
-          <View style={styles.paramItem}>
-            <Text style={styles.paramLabel}>Repetições</Text>
-            <TextInput
-              style={styles.paramInput}
-              value={String(exercise.reps)}
-              onChangeText={(text) =>
-                handleUpdateExercise(index, "reps", parseInt(text) || 0)
-              }
-              keyboardType="number-pad"
-            />
-          </View>
-        </View>
-
-        <View style={styles.paramRow}>
-          <View style={styles.paramItem}>
-            <Text style={styles.paramLabel}>Carga (kg)</Text>
-            <TextInput
-              style={styles.paramInput}
-              value={String(exercise.weight)}
-              onChangeText={(text) =>
-                handleUpdateExercise(index, "weight", parseInt(text) || 0)
-              }
-              keyboardType="number-pad"
-            />
-          </View>
-
-          <View style={styles.paramItem}>
-            <Text style={styles.paramLabel}>Descanso (s)</Text>
-            <TextInput
-              style={styles.paramInput}
-              value={String(exercise.rest_seconds)}
-              onChangeText={(text) =>
-                handleUpdateExercise(index, "rest_seconds", parseInt(text) || 0)
-              }
-              keyboardType="number-pad"
-            />
-          </View>
-        </View>
-      </View>
-    </View>
-  );
-
-  // Modal de seleção de exercício
-  const ExerciseModal = () => (
-    <Modal
-      visible={showExerciseModal}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={() => setShowExerciseModal(false)}
-    >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Adicionar Exercício</Text>
-            <TouchableOpacity onPress={() => setShowExerciseModal(false)}>
-              <Ionicons name="close" size={28} color={theme.colors.text} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Busca */}
-          <View style={styles.searchContainer}>
-            <Ionicons
-              name="search"
-              size={20}
-              color={theme.colors.textSecondary}
-              style={styles.searchIcon}
-            />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Buscar exercício..."
-              placeholderTextColor={theme.colors.textSecondary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
-
-          {/* Filtros por grupo muscular */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.filtersContainer}
-          >
-            {muscleGroups.map((group) => (
-              <TouchableOpacity
-                key={group.id}
-                style={[
-                  styles.filterButton,
-                  selectedMuscleGroup === group.id && styles.filterButtonActive,
-                ]}
-                onPress={() => setSelectedMuscleGroup(group.id)}
-              >
-                <Text
-                  style={[
-                    styles.filterText,
-                    selectedMuscleGroup === group.id && styles.filterTextActive,
-                  ]}
-                >
-                  {group.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {/* Lista de exercícios */}
-          <FlatList
-            data={availableExercises}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.exerciseOption}
-                onPress={() => handleAddExercise(item)}
-              >
-                <View style={styles.exerciseOptionIconContainer}>
-                  <Ionicons
-                    name="fitness"
-                    size={20}
-                    color={theme.colors.primary}
-                  />
-                </View>
-                <View style={styles.exerciseOptionInfo}>
-                  <Text style={styles.exerciseOptionName}>{item.name}</Text>
-                  <Text style={styles.exerciseOptionMuscle}>
-                    {item.muscle_group}
-                  </Text>
-                </View>
-                <Ionicons
-                  name="add-circle"
-                  size={24}
-                  color={theme.colors.primary}
-                />
-              </TouchableOpacity>
-            )}
-            contentContainerStyle={styles.exerciseList}
-          />
-        </View>
-      </View>
-    </Modal>
-  );
+  // ============================================================================
+  // RENDER
+  // ============================================================================
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -397,7 +445,7 @@ const CreateWorkoutScreen = () => {
           <View style={{ width: 28 }} />
         </View>
 
-        {/* Nome do Treino */}
+        {/* Workout Info */}
         <Input
           label="Nome do Treino"
           placeholder="Ex: Treino de Peito e Tríceps"
@@ -405,7 +453,6 @@ const CreateWorkoutScreen = () => {
           onChangeText={setWorkoutName}
         />
 
-        {/* Descrição (opcional) */}
         <Input
           label="Descrição (opcional)"
           placeholder="Foco em força. 3x por semana"
@@ -413,7 +460,6 @@ const CreateWorkoutScreen = () => {
           onChangeText={setWorkoutDescription}
         />
 
-        {/* Frequência (opcional) */}
         <Input
           label="Frequência (opcional)"
           placeholder="Ex: 3x por semana"
@@ -421,7 +467,7 @@ const CreateWorkoutScreen = () => {
           onChangeText={setFrequency}
         />
 
-        {/* Seção de Exercícios */}
+        {/* Exercises Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Exercícios Adicionados</Text>
 
@@ -435,9 +481,15 @@ const CreateWorkoutScreen = () => {
               <Text style={styles.emptyText}>Nenhum exercício adicionado</Text>
             </View>
           ) : (
-            exercises.map((exercise, index) =>
-              renderExerciseItem(exercise, index)
-            )
+            exercises.map((exercise, index) => (
+              <ExerciseCard
+                key={index}
+                exercise={exercise}
+                index={index}
+                onUpdate={handleUpdateExercise}
+                onRemove={handleRemoveExercise}
+              />
+            ))
           )}
 
           <TouchableOpacity
@@ -453,7 +505,7 @@ const CreateWorkoutScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Botão Salvar */}
+        {/* Save Button */}
         <View style={styles.buttonContainer}>
           <Button
             title={isEditing ? "Atualizar Treino" : "Salvar Treino"}
@@ -463,11 +515,24 @@ const CreateWorkoutScreen = () => {
         </View>
       </ScrollView>
 
-      {/* Modal */}
-      <ExerciseModal />
+      {/* Exercise Modal */}
+      <ExerciseModal
+        visible={showExerciseModal}
+        onClose={() => setShowExerciseModal(false)}
+        onAddExercise={handleAddExercise}
+        availableExercises={availableExercises}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        selectedMuscleGroup={selectedMuscleGroup}
+        setSelectedMuscleGroup={setSelectedMuscleGroup}
+      />
     </SafeAreaView>
   );
 };
+
+// ============================================================================
+// STYLES
+// ============================================================================
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -497,6 +562,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: theme.spacing.md,
   },
+
+  // Exercise Card
   exerciseCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
@@ -550,6 +617,8 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.regular,
     textAlign: "center",
   },
+
+  // Empty State
   emptyExercises: {
     alignItems: "center",
     paddingVertical: theme.spacing.xl,
@@ -559,6 +628,8 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.sm,
   },
+
+  // Add Exercise Button
   addExerciseButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -580,6 +651,7 @@ const styles = StyleSheet.create({
   buttonContainer: {
     marginTop: theme.spacing.xl,
   },
+
   // Modal
   modalContainer: {
     flex: 1,
@@ -591,39 +663,49 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     height: "85%",
-    padding: theme.spacing.lg,
+    paddingTop: theme.spacing.lg,
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.lg,
   },
   modalTitle: {
     ...typography.h1,
     fontSize: theme.fontSizes.xl,
   },
+
+  // Search
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
     paddingHorizontal: theme.spacing.md,
+    marginHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.md,
+    height: 50,
   },
   searchIcon: {
     marginRight: theme.spacing.sm,
   },
   searchInput: {
     flex: 1,
-    height: 50,
     color: theme.colors.text,
     fontSize: theme.fontSizes.md,
     fontFamily: theme.fonts.regular,
+    padding: 0,
+  },
+
+  // Filters
+  filtersWrapper: {
+    marginBottom: theme.spacing.md,
   },
   filtersContainer: {
-    marginBottom: theme.spacing.md,
-    flexGrow: 0,
+    paddingHorizontal: theme.spacing.lg,
+    paddingRight: theme.spacing.xl, // Extra padding no final
   },
   filterButton: {
     paddingHorizontal: theme.spacing.md,
@@ -631,6 +713,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: theme.colors.surface,
     marginRight: theme.spacing.sm,
+    minWidth: 80,
+    alignItems: "center",
   },
   filterButtonActive: {
     backgroundColor: theme.colors.primary,
@@ -644,8 +728,11 @@ const styles = StyleSheet.create({
     color: theme.colors.background,
     fontWeight: "700",
   },
+
+  // Exercise List
   exerciseList: {
-    paddingBottom: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: theme.spacing.xl,
   },
   exerciseOption: {
     flexDirection: "row",
