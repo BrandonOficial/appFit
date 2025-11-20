@@ -10,6 +10,8 @@ import {
   Alert,
   Pressable,
   Modal,
+  TextInput,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,12 +22,16 @@ import { getWorkouts, deleteWorkout } from "../../services/supabase/workouts";
 import { globalStyles } from "../../styles/globalStyles";
 import { typography } from "../../styles/typography";
 import { theme } from "../../styles/theme";
-import Button from "../../components/common/Button";
 
 /**
  * Modal de Confirmação de Deleção
  */
-const DeleteConfirmationModal = ({ visible, workoutName, onConfirm, onCancel }) => {
+const DeleteConfirmationModal = ({
+  visible,
+  workoutName,
+  onConfirm,
+  onCancel,
+}) => {
   return (
     <Modal
       visible={visible}
@@ -40,7 +46,7 @@ const DeleteConfirmationModal = ({ visible, workoutName, onConfirm, onCancel }) 
           </View>
 
           <Text style={styles.modalTitle}>Deletar Treino</Text>
-          
+
           <Text style={styles.modalMessage}>
             Tem certeza que deseja deletar{"\n"}
             <Text style={styles.modalWorkoutName}>"{workoutName}"</Text>?
@@ -70,76 +76,97 @@ const DeleteConfirmationModal = ({ visible, workoutName, onConfirm, onCancel }) 
 };
 
 /**
- * Componente de Card de Treino
+ * Componente de Card de Treino - Design Atualizado
  */
-const WorkoutCard = ({ item, onPress, onDelete, isDeleting }) => {
+const WorkoutCard = ({ item, onPress, onOpenMenu, isDeleting }) => {
   const exerciseCount = item.workout_exercises?.length || 0;
-  
+
   const getExerciseCountText = (count) => {
     return `${count} ${count === 1 ? "exercício" : "exercícios"}`;
   };
 
-  const handleCardPress = () => {
-    console.log("🔵 Card pressionado:", item.name);
-    onPress(item.id);
+  // Gerar cor de fundo aleatória baseada no ID
+  const getBackgroundColor = (id) => {
+    const colors = [
+      "rgba(124, 252, 0, 0.2)", // Verde
+      "rgba(255, 159, 64, 0.2)", // Laranja
+      "rgba(54, 162, 235, 0.2)", // Azul
+      "rgba(255, 99, 132, 0.2)", // Rosa
+      "rgba(153, 102, 255, 0.2)", // Roxo
+    ];
+    const index = parseInt(id.substring(0, 8), 16) % colors.length;
+    return colors[index];
   };
 
-  const handleDeletePress = () => {
-    console.log("🗑️ Botão deletar pressionado:", item.name);
-    onDelete(item.id, item.name);
+  // Gerar emoji baseado no nome do treino
+  const getWorkoutEmoji = (name) => {
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes("cardio") || lowerName.includes("corrida"))
+      return "🏃";
+    if (lowerName.includes("peito") || lowerName.includes("supino"))
+      return "💪";
+    if (lowerName.includes("perna") || lowerName.includes("agachamento"))
+      return "🦵";
+    if (lowerName.includes("costas")) return "🏋️";
+    if (
+      lowerName.includes("alongamento") ||
+      lowerName.includes("flexibilidade")
+    )
+      return "🧘";
+    return "💪"; // Default
   };
 
   return (
-    <View style={styles.workoutCard}>
-      {/* Área principal clicável */}
-      <Pressable
-        style={styles.workoutMainArea}
-        onPress={handleCardPress}
-        android_ripple={{ color: 'rgba(124, 252, 0, 0.1)' }}
-        disabled={isDeleting}
-      >
-        <View style={styles.workoutIconContainer}>
-          <Ionicons name="barbell" size={24} color={theme.colors.primary} />
-        </View>
-
-        <View style={styles.workoutInfo}>
-          <Text style={styles.workoutName}>{item.name}</Text>
-          
-          {item.description && (
-            <Text style={styles.workoutDescription} numberOfLines={1}>
-              {item.description}
-            </Text>
-          )}
-          
-          <Text style={styles.workoutMeta}>
-            {getExerciseCountText(exerciseCount)}
-            {item.frequency && ` • ${item.frequency}`}
-          </Text>
-        </View>
-      </Pressable>
-
-      {/* Botão de deletar */}
-      <Pressable
-        style={({ pressed }) => [
-          styles.deleteButton,
-          pressed && styles.deleteButtonPressed,
-          isDeleting && styles.deleteButtonDisabled,
+    <Pressable
+      style={({ pressed }) => [
+        styles.workoutCard,
+        pressed && styles.workoutCardPressed,
+      ]}
+      onPress={() => onPress(item.id)}
+      disabled={isDeleting}
+    >
+      {/* Imagem/Avatar do Treino */}
+      <View
+        style={[
+          styles.workoutAvatar,
+          { backgroundColor: getBackgroundColor(item.id) },
         ]}
-        onPress={handleDeletePress}
+      >
+        <Text style={styles.workoutEmoji}>{getWorkoutEmoji(item.name)}</Text>
+      </View>
+
+      {/* Informações do Treino */}
+      <View style={styles.workoutContent}>
+        <Text style={styles.workoutTitle} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text style={styles.workoutSubtitle} numberOfLines={1}>
+          {item.description || `${getExerciseCountText(exerciseCount)}`}
+          {item.frequency && ` • ${item.frequency}`}
+        </Text>
+      </View>
+
+      {/* Menu de Ações */}
+      <TouchableOpacity
+        style={styles.menuButton}
+        onPress={(e) => {
+          e.stopPropagation();
+          onOpenMenu(item.id, item.name);
+        }}
         disabled={isDeleting}
-        android_ripple={{ color: 'rgba(255, 65, 54, 0.2)' }}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         {isDeleting ? (
-          <ActivityIndicator size="small" color={theme.colors.error} />
+          <ActivityIndicator size="small" color={theme.colors.textSecondary} />
         ) : (
           <Ionicons
-            name="trash-outline"
-            size={22}
-            color={theme.colors.error}
+            name="ellipsis-vertical"
+            size={20}
+            color={theme.colors.textSecondary}
           />
         )}
-      </Pressable>
-    </View>
+      </TouchableOpacity>
+    </Pressable>
   );
 };
 
@@ -148,10 +175,13 @@ const WorkoutsScreen = () => {
   const { user } = useAuth();
 
   const [workouts, setWorkouts] = useState([]);
+  const [filteredWorkouts, setFilteredWorkouts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
-  
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
+
   // Estado do modal de confirmação
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [workoutToDelete, setWorkoutToDelete] = useState(null);
@@ -163,16 +193,12 @@ const WorkoutsScreen = () => {
     if (!user) return;
 
     try {
-      console.log("🔵 Carregando treinos para:", user.id);
       const { data, error } = await getWorkouts(user.id);
 
-      if (error) {
-        console.error("❌ Erro ao carregar:", error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log("✅ Treinos carregados:", data?.length || 0);
       setWorkouts(data || []);
+      setFilteredWorkouts(data || []);
     } catch (e) {
       console.error("Erro ao carregar treinos:", e);
       Alert.alert("Erro", "Não foi possível carregar os treinos.");
@@ -189,6 +215,24 @@ const WorkoutsScreen = () => {
   );
 
   /**
+   * Filtra os treinos baseado na busca
+   */
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setFilteredWorkouts(workouts);
+    } else {
+      const query = searchQuery.toLowerCase();
+      const filtered = workouts.filter(
+        (workout) =>
+          workout.name.toLowerCase().includes(query) ||
+          workout.description?.toLowerCase().includes(query) ||
+          workout.frequency?.toLowerCase().includes(query)
+      );
+      setFilteredWorkouts(filtered);
+    }
+  }, [searchQuery, workouts]);
+
+  /**
    * Atualiza a lista de treinos (pull-to-refresh)
    */
   const onRefresh = () => {
@@ -200,7 +244,6 @@ const WorkoutsScreen = () => {
    * Navega para a tela de detalhes do treino
    */
   const navigateToWorkoutDetail = (workoutId) => {
-    console.log("📍 Navegando para detalhes:", workoutId);
     navigation.navigate("WorkoutDetail", { workoutId });
   };
 
@@ -212,15 +255,53 @@ const WorkoutsScreen = () => {
   };
 
   /**
+   * Estado do menu de ações
+   */
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [selectedWorkout, setSelectedWorkout] = useState(null);
+
+  /**
+   * Abre o menu de ações (editar/deletar)
+   */
+  const openWorkoutMenu = (workoutId, workoutName) => {
+    setSelectedWorkout({ id: workoutId, name: workoutName });
+    setMenuVisible(true);
+  };
+
+  /**
+   * Fecha o menu de ações
+   */
+  const closeWorkoutMenu = () => {
+    setMenuVisible(false);
+    setSelectedWorkout(null);
+  };
+
+  /**
+   * Navega para editar treino
+   */
+  const handleEditWorkout = () => {
+    if (selectedWorkout) {
+      closeWorkoutMenu();
+      navigation.navigate("CreateWorkout", { workoutId: selectedWorkout.id });
+    }
+  };
+
+  /**
+   * Inicia processo de deleção
+   */
+  const handleDeleteFromMenu = () => {
+    if (selectedWorkout) {
+      closeWorkoutMenu();
+      setTimeout(() => {
+        confirmDeleteWorkout(selectedWorkout.id, selectedWorkout.name);
+      }, 300);
+    }
+  };
+
+  /**
    * Abre o modal de confirmação de deleção
    */
   const confirmDeleteWorkout = (workoutId, workoutName) => {
-    console.log("═══════════════════════════════════════");
-    console.log("🗑️ INICIANDO PROCESSO DE DELEÇÃO");
-    console.log("ID:", workoutId);
-    console.log("Nome:", workoutName);
-    console.log("═══════════════════════════════════════");
-
     setWorkoutToDelete({ id: workoutId, name: workoutName });
     setShowDeleteModal(true);
   };
@@ -229,7 +310,6 @@ const WorkoutsScreen = () => {
    * Cancela a deleção
    */
   const handleCancelDelete = () => {
-    console.log("❌ Usuário cancelou a deleção");
     setShowDeleteModal(false);
     setWorkoutToDelete(null);
   };
@@ -238,9 +318,8 @@ const WorkoutsScreen = () => {
    * Confirma e executa a deleção
    */
   const handleConfirmDelete = () => {
-    console.log("✅ Usuário confirmou a deleção");
     setShowDeleteModal(false);
-    
+
     if (workoutToDelete) {
       executeDeleteWorkout(workoutToDelete.id, workoutToDelete.name);
     }
@@ -250,42 +329,36 @@ const WorkoutsScreen = () => {
    * Executa a deleção do treino
    */
   const executeDeleteWorkout = async (workoutId, workoutName) => {
-    console.log("🔄 Executando deleção...");
-    
     try {
       setDeletingId(workoutId);
 
       const { error } = await deleteWorkout(workoutId);
 
-      if (error) {
-        console.error("❌ Erro retornado do Supabase:", error);
-        throw error;
-      }
-
-      console.log("✅ Treino deletado com sucesso no backend");
+      if (error) throw error;
 
       // Atualizar a lista localmente
-      setWorkouts((prevWorkouts) => {
-        const updated = prevWorkouts.filter((workout) => workout.id !== workoutId);
-        console.log("📋 Lista atualizada. Treinos restantes:", updated.length);
-        return updated;
-      });
+      setWorkouts((prev) => prev.filter((w) => w.id !== workoutId));
+      setFilteredWorkouts((prev) => prev.filter((w) => w.id !== workoutId));
 
-      // Mostrar feedback de sucesso
       setTimeout(() => {
         Alert.alert("Sucesso", `"${workoutName}" foi deletado com sucesso!`);
       }, 300);
-
     } catch (error) {
-      console.error("❌ ERRO AO DELETAR:", error);
-      Alert.alert(
-        "Erro",
-        "Não foi possível deletar o treino. Tente novamente."
-      );
+      console.error("Erro ao deletar:", error);
+      Alert.alert("Erro", "Não foi possível deletar o treino.");
     } finally {
       setDeletingId(null);
       setWorkoutToDelete(null);
-      console.log("═══════════════════════════════════════\n");
+    }
+  };
+
+  /**
+   * Alterna a visibilidade da busca
+   */
+  const toggleSearch = () => {
+    setIsSearchVisible(!isSearchVisible);
+    if (isSearchVisible) {
+      setSearchQuery("");
     }
   };
 
@@ -296,7 +369,7 @@ const WorkoutsScreen = () => {
     <WorkoutCard
       item={item}
       onPress={navigateToWorkoutDetail}
-      onDelete={confirmDeleteWorkout}
+      onOpenMenu={openWorkoutMenu}
       isDeleting={deletingId === item.id}
     />
   );
@@ -311,16 +384,20 @@ const WorkoutsScreen = () => {
         size={64}
         color={theme.colors.textSecondary}
       />
-      <Text style={styles.emptyTitle}>Nenhum Treino</Text>
+      <Text style={styles.emptyTitle}>
+        {searchQuery ? "Nenhum treino encontrado" : "Nenhum Treino"}
+      </Text>
       <Text style={styles.emptyText}>
-        Comece criando seu primeiro treino{"\n"}tocando no botão + abaixo
+        {searchQuery
+          ? `Nenhum treino corresponde a "${searchQuery}"`
+          : "Comece criando seu primeiro treino\ntocando no botão + abaixo"}
       </Text>
     </View>
   );
 
   if (isLoading) {
     return (
-      <SafeAreaView style={globalStyles.screenContainer}>
+      <SafeAreaView style={styles.container}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={styles.loadingText}>Carregando treinos...</Text>
@@ -330,18 +407,58 @@ const WorkoutsScreen = () => {
   }
 
   return (
-    <SafeAreaView style={globalStyles.screenContainer}>
-      {/* Header */}
+    <SafeAreaView style={styles.container}>
+      {/* Header com Título e Busca */}
       <View style={styles.header}>
-        <Text style={typography.h1}>Meus Treinos</Text>
-        <Text style={styles.subtitle}>
-          {workouts.length} {workouts.length === 1 ? "treino" : "treinos"}
-        </Text>
+        <Text style={styles.headerTitle}>Meus Treinos</Text>
+        <TouchableOpacity
+          style={styles.searchButton}
+          onPress={toggleSearch}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons
+            name={isSearchVisible ? "close" : "search"}
+            size={24}
+            color={theme.colors.text}
+          />
+        </TouchableOpacity>
       </View>
+
+      {/* Barra de Busca */}
+      {isSearchVisible && (
+        <View style={styles.searchContainer}>
+          <Ionicons
+            name="search"
+            size={20}
+            color={theme.colors.textSecondary}
+            style={styles.searchIcon}
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar treinos..."
+            placeholderTextColor={theme.colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoFocus={true}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery("")}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons
+                name="close-circle"
+                size={20}
+                color={theme.colors.textSecondary}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {/* Lista de Treinos */}
       <FlatList
-        data={workouts}
+        data={filteredWorkouts}
         renderItem={renderWorkoutCard}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
@@ -358,12 +475,8 @@ const WorkoutsScreen = () => {
 
       {/* Floating Action Button */}
       <Pressable
-        style={({ pressed }) => [
-          styles.fab,
-          pressed && styles.fabPressed,
-        ]}
+        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         onPress={navigateToCreateWorkout}
-        android_ripple={{ color: 'rgba(0, 0, 0, 0.2)' }}
       >
         <Ionicons name="add" size={32} color={theme.colors.background} />
       </Pressable>
@@ -380,101 +493,134 @@ const WorkoutsScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+
+  // Header
   header: {
-    marginBottom: theme.spacing.lg,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
   },
-  subtitle: {
-    ...typography.body,
-    fontSize: theme.fontSizes.sm,
-    color: theme.colors.textSecondary,
-    marginTop: 4,
+
+  headerTitle: {
+    ...typography.h1,
+    fontSize: 28,
+    fontWeight: "700",
   },
+
+  searchButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  // Barra de Busca
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    marginHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    height: 48,
+  },
+
+  searchIcon: {
+    marginRight: theme.spacing.sm,
+  },
+
+  searchInput: {
+    flex: 1,
+    color: theme.colors.text,
+    fontSize: theme.fontSizes.md,
+    fontFamily: theme.fonts.regular,
+    padding: 0,
+  },
+
+  // Lista
   listContainer: {
+    paddingHorizontal: theme.spacing.lg,
     paddingBottom: 100,
     flexGrow: 1,
   },
+
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
+
   loadingText: {
     ...typography.body,
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.md,
   },
 
-  // Card do treino
+  // Card do Treino - Novo Design
   workoutCard: {
     flexDirection: "row",
+    alignItems: "center",
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
+    borderRadius: 16,
+    padding: theme.spacing.md,
     marginBottom: theme.spacing.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    overflow: "hidden",
-    elevation: 2,
   },
 
-  workoutMainArea: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    padding: theme.spacing.md,
+  workoutCardPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.98 }],
   },
 
-  workoutIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: "rgba(124, 252, 0, 0.1)",
+  workoutAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
     marginRight: theme.spacing.md,
   },
 
-  workoutInfo: {
-    flex: 1,
+  workoutEmoji: {
+    fontSize: 32,
   },
 
-  workoutName: {
+  workoutContent: {
+    flex: 1,
+    justifyContent: "center",
+  },
+
+  workoutTitle: {
     ...typography.body,
     fontSize: theme.fontSizes.lg,
     fontWeight: "700",
+    color: theme.colors.text,
     marginBottom: 4,
   },
 
-  workoutDescription: {
+  workoutSubtitle: {
     ...typography.body,
     fontSize: theme.fontSizes.sm,
     color: theme.colors.textSecondary,
-    marginBottom: 4,
   },
 
-  workoutMeta: {
-    ...typography.body,
-    fontSize: theme.fontSizes.xs,
-    color: theme.colors.textSecondary,
-  },
-
-  deleteButton: {
-    width: 60,
+  menuButton: {
+    width: 32,
+    height: 32,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(255, 65, 54, 0.1)",
-    borderLeftWidth: 1,
-    borderLeftColor: theme.colors.border,
   },
 
-  deleteButtonPressed: {
-    backgroundColor: "rgba(255, 65, 54, 0.2)",
-  },
-
-  deleteButtonDisabled: {
-    opacity: 0.5,
-  },
-
-  // Floating Action Button
+  // FAB
   fab: {
     position: "absolute",
     right: theme.spacing.lg,
