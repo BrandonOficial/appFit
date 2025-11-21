@@ -455,7 +455,7 @@ const CreateWorkoutScreen = () => {
 
         <Input
           label="Descrição (opcional)"
-          placeholder="Foco em força. 3x por semana"
+          placeholder="Foco em força."
           value={workoutDescription}
           onChangeText={setWorkoutDescription}
         />
