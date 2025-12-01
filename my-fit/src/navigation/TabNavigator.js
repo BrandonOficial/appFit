@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import HomeScreen from "../screens/Home/HomeScreen";
 import ProfileStack from "./StackNavigators/ProfileStack";
 import WorkoutStack from "./StackNavigators/WorkoutStack";
+import ProgressStack from "./StackNavigators/ProgressStack";
 import { theme } from "../styles/theme";
 
 const Tab = createBottomTabNavigator();
@@ -24,14 +25,6 @@ const TAB_BAR_HEIGHT = Platform.OS === "ios" ? 85 : 70;
 const ICON_SIZE = 24;
 const FAB_SIZE = 64;
 const FAB_ICON_SIZE = 32;
-
-// ============================================================================
-// PLACEHOLDER COMPONENT (para tabs futuras)
-// ============================================================================
-
-function PlaceholderScreen() {
-  return <View style={{ flex: 1, backgroundColor: theme.colors.background }} />;
-}
 
 // ============================================================================
 // CUSTOM TAB BAR COMPONENT
@@ -169,10 +162,10 @@ const TabNavigator = () => {
         options={{ title: "Treinos" }}
       />
 
-      {/* Placeholder para futuro ProgressStack */}
+      {/* Progresso Stack */}
       <Tab.Screen
         name="ProgressTab"
-        component={PlaceholderScreen}
+        component={ProgressStack}
         options={{ title: "Progresso" }}
       />
 
