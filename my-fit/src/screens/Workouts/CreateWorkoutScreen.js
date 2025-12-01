@@ -462,7 +462,7 @@ const CreateWorkoutScreen = () => {
 
         <Input
           label="Frequência (opcional)"
-          placeholder="Ex: 3x por semana"
+          placeholder="Ex: 2x por semana"
           value={frequency}
           onChangeText={setFrequency}
         />
