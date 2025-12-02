@@ -159,13 +159,11 @@ const ProfileScreen = () => {
                 />
               }
             />
-            <View style={styles.divider} />
             <SettingsItem
               icon="lock-closed-outline"
               title="Privacidade"
               onPress={handlePrivacy}
             />
-            <View style={styles.divider} />
             <SettingsItem
               icon="language-outline"
               title="Idioma"
@@ -183,7 +181,6 @@ const ProfileScreen = () => {
               title="Sobre o App"
               onPress={handleAbout}
             />
-            <View style={styles.divider} />
             <SettingsItem
               icon="help-circle-outline"
               title="Ajuda e Suporte"
@@ -238,8 +235,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     padding: 8,
     borderRadius: 20,
-    borderWidth: 3,
-    borderColor: theme.colors.background,
   },
   name: {
     ...typography.h1,
@@ -295,11 +290,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     flex: 1,
   },
-  divider: {
-    height: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    marginLeft: 72, // Alinha com o texto após o ícone
-  },
+
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
