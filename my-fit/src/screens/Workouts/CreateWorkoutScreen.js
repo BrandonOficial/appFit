@@ -379,15 +379,36 @@ const CreateWorkoutScreen = () => {
         }
       }
 
+      // ATUALIZADO: Sempre volta para WorkoutsScreen após criar/editar
+      const successMessage = isEditing
+        ? "Treino atualizado com sucesso!"
+        : "Treino criado com sucesso!";
+
+      // Primeiro mostra o alert
+      setIsLoading(false);
+
       Alert.alert(
-        "Sucesso",
-        `Treino ${isEditing ? "atualizado" : "criado"} com sucesso!`,
-        [{ text: "OK", onPress: () => navigation.goBack() }]
+        "Sucesso!",
+        successMessage,
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              // Reseta a navegação para o início da stack (WorkoutsScreen)
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "Workouts" }],
+              });
+            },
+          },
+        ],
+        { cancelable: false }
       );
+
+      return; // Para não executar o finally
     } catch (e) {
       console.error("Erro ao salvar treino:", e);
       Alert.alert("Erro", "Não foi possível salvar o treino.");
-    } finally {
       setIsLoading(false);
     }
   };
@@ -705,7 +726,7 @@ const styles = StyleSheet.create({
   },
   filtersContainer: {
     paddingHorizontal: theme.spacing.lg,
-    paddingRight: theme.spacing.xl, // Extra padding no final
+    paddingRight: theme.spacing.xl,
   },
   filterButton: {
     paddingHorizontal: theme.spacing.md,
