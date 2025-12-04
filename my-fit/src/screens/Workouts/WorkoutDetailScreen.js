@@ -1,3 +1,5 @@
+// src/screens/Workouts/WorkoutDetailScreen.js - ATUALIZADO
+
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -16,51 +18,25 @@ import {
   getWorkoutById,
   deleteWorkout,
 } from "../../services/supabase/workouts";
+import ExerciseImage from "../../components/common/ExerciseImage";
+import { getExerciseImage } from "../../constants/exerciseImages";
 import { theme } from "../../styles/theme";
 import { typography } from "../../styles/typography";
 
 // ============================================================================
-// CONSTANTS
-// ============================================================================
-
-const EXERCISE_EMOJIS = {
-  supino: "🏋️",
-  peito: "💪",
-  agachamento: "🦵",
-  perna: "🦵",
-  remada: "🚣",
-  costas: "🔙",
-  desenvolvimento: "💪",
-  ombro: "💪",
-  default: "💪",
-};
-
-// ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
-
-const getExerciseEmoji = (name) => {
-  const lowerName = name.toLowerCase();
-
-  for (const [key, emoji] of Object.entries(EXERCISE_EMOJIS)) {
-    if (key !== "default" && lowerName.includes(key)) {
-      return emoji;
-    }
-  }
-
-  return EXERCISE_EMOJIS.default;
-};
 
 const formatExerciseDetails = (sets, reps, weight, rest) => {
   return `${sets}x ${reps} reps | ${weight}kg | ${rest}s descanso`;
 };
 
 // ============================================================================
-// EXERCISE ITEM COMPONENT
+// EXERCISE ITEM COMPONENT - ATUALIZADO COM IMAGEM
 // ============================================================================
 
 const ExerciseItem = ({ exercise, index }) => {
-  const emoji = getExerciseEmoji(exercise.exercises.name);
+  const imageUrl = getExerciseImage(exercise.exercises.name);
   const details = formatExerciseDetails(
     exercise.sets,
     exercise.reps,
@@ -70,10 +46,14 @@ const ExerciseItem = ({ exercise, index }) => {
 
   return (
     <View style={styles.exerciseItem}>
-      {/* Exercise Image/Icon */}
-      <View style={styles.exerciseImageContainer}>
-        <Text style={styles.exerciseEmoji}>{emoji}</Text>
-      </View>
+      {/* Exercise Image */}
+      <ExerciseImage
+        source={imageUrl}
+        width={64}
+        height={64}
+        borderRadius={12}
+        showOverlay={false}
+      />
 
       {/* Exercise Info */}
       <View style={styles.exerciseInfo}>
@@ -93,13 +73,8 @@ const WorkoutDetailScreen = () => {
   const route = useRoute();
   const { workoutId } = route.params;
 
-  // State
   const [workout, setWorkout] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  // ============================================================================
-  // DATA LOADING
-  // ============================================================================
 
   useEffect(() => {
     loadWorkout();
@@ -118,10 +93,6 @@ const WorkoutDetailScreen = () => {
     setWorkout(data);
     setIsLoading(false);
   };
-
-  // ============================================================================
-  // HANDLERS
-  // ============================================================================
 
   const handleGoBack = () => {
     navigation.goBack();
@@ -154,17 +125,12 @@ const WorkoutDetailScreen = () => {
   };
 
   const handleStartWorkout = () => {
-    // Navigate to workout execution screen
     navigation.navigate("ExecuteWorkout", { workoutId });
   };
 
   const handleSaveWorkout = () => {
     Alert.alert("Salvar", "Alterações salvas com sucesso!");
   };
-
-  // ============================================================================
-  // LOADING STATE
-  // ============================================================================
 
   if (isLoading) {
     return (
@@ -185,13 +151,8 @@ const WorkoutDetailScreen = () => {
     (a, b) => a.order_index - b.order_index
   );
 
-  // ============================================================================
-  // RENDER
-  // ============================================================================
-
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={handleGoBack}
@@ -216,7 +177,6 @@ const WorkoutDetailScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Exercise List */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -227,7 +187,6 @@ const WorkoutDetailScreen = () => {
         ))}
       </ScrollView>
 
-      {/* Bottom Actions */}
       <View style={styles.bottomActions}>
         <TouchableOpacity
           style={styles.saveButton}
@@ -259,14 +218,12 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
 
-  // Loading
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
 
-  // Header
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -292,7 +249,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  // Scroll View
   scrollView: {
     flex: 1,
   },
@@ -300,10 +256,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: theme.spacing.md,
     paddingTop: theme.spacing.xs,
-    paddingBottom: 120, // Space for bottom buttons
+    paddingBottom: 120,
   },
 
-  // Exercise Item
   exerciseItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -311,19 +266,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
     gap: theme.spacing.md,
-  },
-
-  exerciseImageContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    backgroundColor: "rgba(124, 252, 0, 0.1)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  exerciseEmoji: {
-    fontSize: 28,
   },
 
   exerciseInfo: {
@@ -346,7 +288,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  // Bottom Actions
   bottomActions: {
     position: "absolute",
     bottom: 0,

@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
-  Pressable,
   Modal,
   TextInput,
 } from "react-native";
@@ -90,7 +89,11 @@ const ActionMenuModal = ({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <Pressable style={styles.menuOverlay} onPress={onClose}>
+      <TouchableOpacity
+        style={styles.menuOverlay}
+        activeOpacity={1}
+        onPress={onClose}
+      >
         <View style={styles.menuContent}>
           {/* Header */}
           <View style={styles.menuHeader}>
@@ -154,7 +157,7 @@ const ActionMenuModal = ({
             </TouchableOpacity>
           </View>
         </View>
-      </Pressable>
+      </TouchableOpacity>
     </Modal>
   );
 };
@@ -220,13 +223,11 @@ const WorkoutCard = ({ item, onPress, onOpenMenu, isDeleting }) => {
   const exerciseCount = item.workout_exercises?.length || 0;
 
   return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.workoutCard,
-        pressed && styles.workoutCardPressed,
-      ]}
+    <TouchableOpacity
+      style={styles.workoutCard}
       onPress={() => onPress(item.id)}
       disabled={isDeleting}
+      activeOpacity={0.7}
     >
       {/* Avatar do Treino */}
       <View
@@ -269,7 +270,7 @@ const WorkoutCard = ({ item, onPress, onOpenMenu, isDeleting }) => {
           />
         )}
       </TouchableOpacity>
-    </Pressable>
+    </TouchableOpacity>
   );
 };
 
@@ -566,12 +567,13 @@ const WorkoutsScreen = () => {
       />
 
       {/* FAB */}
-      <Pressable
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+      <TouchableOpacity
+        style={styles.fab}
         onPress={navigateToCreateWorkout}
+        activeOpacity={0.8}
       >
         <Ionicons name="add" size={32} color={theme.colors.background} />
-      </Pressable>
+      </TouchableOpacity>
 
       {/* Action Menu Modal */}
       <ActionMenuModal
@@ -669,7 +671,7 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.md,
   },
 
-  // Card - Transparente
+  // Card
   workoutCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -678,11 +680,6 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     marginBottom: theme.spacing.md,
     borderWidth: 0,
-  },
-
-  workoutCardPressed: {
-    opacity: 0.7,
-    transform: [{ scale: 0.98 }],
   },
 
   workoutAvatar: {
@@ -740,10 +737,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-  },
-
-  fabPressed: {
-    transform: [{ scale: 0.95 }],
   },
 
   // Empty State
