@@ -1,3 +1,5 @@
+// src/screens/Workouts/WorkoutsScreen.js - CORRIGIDO
+
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
@@ -17,34 +19,11 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 
 import { useAuth } from "../../contexts/AuthContext";
 import { getWorkouts, deleteWorkout } from "../../services/supabase/workouts";
+import ExerciseImage from "../../components/common/ExerciseImage";
+import { getExerciseImage } from "../../constants/exerciseImages";
 import { globalStyles } from "../../styles/globalStyles";
 import { typography } from "../../styles/typography";
 import { theme } from "../../styles/theme";
-
-// ============================================================================
-// CONSTANTS
-// ============================================================================
-
-const AVATAR_COLORS = [
-  "rgba(124, 252, 0, 0.2)", // Verde
-  "rgba(255, 159, 64, 0.2)", // Laranja
-  "rgba(54, 162, 235, 0.2)", // Azul
-  "rgba(255, 99, 132, 0.2)", // Rosa
-  "rgba(153, 102, 255, 0.2)", // Roxo
-];
-
-const WORKOUT_EMOJIS = {
-  cardio: "🏃",
-  corrida: "🏃",
-  peito: "💪",
-  supino: "💪",
-  perna: "🦵",
-  agachamento: "🦵",
-  costas: "🏋️",
-  alongamento: "🧘",
-  flexibilidade: "🧘",
-  default: "💪",
-};
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -52,23 +31,6 @@ const WORKOUT_EMOJIS = {
 
 const getExerciseCountText = (count) => {
   return `${count} ${count === 1 ? "exercício" : "exercícios"}`;
-};
-
-const getBackgroundColor = (id) => {
-  const index = parseInt(id.substring(0, 8), 16) % AVATAR_COLORS.length;
-  return AVATAR_COLORS[index];
-};
-
-const getWorkoutEmoji = (name) => {
-  const lowerName = name.toLowerCase();
-
-  for (const [key, emoji] of Object.entries(WORKOUT_EMOJIS)) {
-    if (key !== "default" && lowerName.includes(key)) {
-      return emoji;
-    }
-  }
-
-  return WORKOUT_EMOJIS.default;
 };
 
 // ============================================================================
@@ -95,7 +57,6 @@ const ActionMenuModal = ({
         onPress={onClose}
       >
         <View style={styles.menuContent}>
-          {/* Header */}
           <View style={styles.menuHeader}>
             <Text style={styles.menuTitle} numberOfLines={1}>
               {workoutName}
@@ -108,9 +69,7 @@ const ActionMenuModal = ({
             </TouchableOpacity>
           </View>
 
-          {/* Menu Items */}
           <View style={styles.menuItems}>
-            {/* Editar */}
             <TouchableOpacity
               style={styles.menuItem}
               onPress={onEdit}
@@ -133,7 +92,6 @@ const ActionMenuModal = ({
 
             <View style={styles.menuDivider} />
 
-            {/* Deletar */}
             <TouchableOpacity
               style={styles.menuItem}
               onPress={onDelete}
@@ -216,11 +174,12 @@ const DeleteConfirmationModal = ({
 };
 
 // ============================================================================
-// WORKOUT CARD COMPONENT
+// WORKOUT CARD COMPONENT - ATUALIZADO COM TouchableOpacity
 // ============================================================================
 
 const WorkoutCard = ({ item, onPress, onOpenMenu, isDeleting }) => {
   const exerciseCount = item.workout_exercises?.length || 0;
+  const imageUrl = getExerciseImage(item.name);
 
   return (
     <TouchableOpacity
@@ -229,15 +188,14 @@ const WorkoutCard = ({ item, onPress, onOpenMenu, isDeleting }) => {
       disabled={isDeleting}
       activeOpacity={0.7}
     >
-      {/* Avatar do Treino */}
-      <View
-        style={[
-          styles.workoutAvatar,
-          { backgroundColor: getBackgroundColor(item.id) },
-        ]}
-      >
-        <Text style={styles.workoutEmoji}>{getWorkoutEmoji(item.name)}</Text>
-      </View>
+      {/* Imagem do Treino */}
+      <ExerciseImage
+        source={imageUrl}
+        width={80}
+        height={80}
+        borderRadius={16}
+        showOverlay={false}
+      />
 
       {/* Informações do Treino */}
       <View style={styles.workoutContent}>
@@ -282,7 +240,6 @@ const WorkoutsScreen = () => {
   const navigation = useNavigation();
   const { user } = useAuth();
 
-  // State Management
   const [workouts, setWorkouts] = useState([]);
   const [filteredWorkouts, setFilteredWorkouts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -352,7 +309,7 @@ const WorkoutsScreen = () => {
   };
 
   // ============================================================================
-  // NAVIGATION HANDLERS
+  // HANDLERS
   // ============================================================================
 
   const navigateToWorkoutDetail = (workoutId) => {
@@ -362,10 +319,6 @@ const WorkoutsScreen = () => {
   const navigateToCreateWorkout = () => {
     navigation.navigate("CreateWorkout");
   };
-
-  // ============================================================================
-  // MENU HANDLERS
-  // ============================================================================
 
   const openWorkoutMenu = (workoutId, workoutName) => {
     setSelectedWorkout({ id: workoutId, name: workoutName });
@@ -394,10 +347,6 @@ const WorkoutsScreen = () => {
       }, 300);
     }
   };
-
-  // ============================================================================
-  // DELETE HANDLERS
-  // ============================================================================
 
   const confirmDeleteWorkout = (workoutId, workoutName) => {
     setWorkoutToDelete({ id: workoutId, name: workoutName });
@@ -440,10 +389,6 @@ const WorkoutsScreen = () => {
     }
   };
 
-  // ============================================================================
-  // REFRESH HANDLER
-  // ============================================================================
-
   const onRefresh = () => {
     setIsRefreshing(true);
     loadWorkouts();
@@ -480,10 +425,6 @@ const WorkoutsScreen = () => {
     </View>
   );
 
-  // ============================================================================
-  // LOADING STATE
-  // ============================================================================
-
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -495,13 +436,8 @@ const WorkoutsScreen = () => {
     );
   }
 
-  // ============================================================================
-  // MAIN RENDER
-  // ============================================================================
-
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Meus Treinos</Text>
         <TouchableOpacity
@@ -517,7 +453,6 @@ const WorkoutsScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Barra de Busca */}
       {isSearchVisible && (
         <View style={styles.searchContainer}>
           <Ionicons
@@ -549,7 +484,6 @@ const WorkoutsScreen = () => {
         </View>
       )}
 
-      {/* Lista de Treinos */}
       <FlatList
         data={filteredWorkouts}
         renderItem={renderWorkoutCard}
@@ -566,7 +500,7 @@ const WorkoutsScreen = () => {
         ListEmptyComponent={renderEmptyState}
       />
 
-      {/* FAB */}
+      {/* FAB - Corrigido com TouchableOpacity */}
       <TouchableOpacity
         style={styles.fab}
         onPress={navigateToCreateWorkout}
@@ -575,7 +509,6 @@ const WorkoutsScreen = () => {
         <Ionicons name="add" size={32} color={theme.colors.background} />
       </TouchableOpacity>
 
-      {/* Action Menu Modal */}
       <ActionMenuModal
         visible={showActionMenu}
         workoutName={selectedWorkout?.name || ""}
@@ -584,7 +517,6 @@ const WorkoutsScreen = () => {
         onClose={closeActionMenu}
       />
 
-      {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
         visible={showDeleteModal}
         workoutName={workoutToDelete?.name || ""}
@@ -605,7 +537,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
 
-  // Header
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -628,7 +559,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  // Barra de Busca
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -652,7 +582,6 @@ const styles = StyleSheet.create({
     padding: 0,
   },
 
-  // Lista
   listContainer: {
     paddingHorizontal: theme.spacing.lg,
     paddingBottom: 100,
@@ -671,7 +600,7 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.md,
   },
 
-  // Card
+  // Card - Removido workoutCardPressed (não é mais necessário)
   workoutCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -682,22 +611,10 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
 
-  workoutAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: theme.spacing.md,
-  },
-
-  workoutEmoji: {
-    fontSize: 32,
-  },
-
   workoutContent: {
     flex: 1,
     justifyContent: "center",
+    marginLeft: theme.spacing.md,
   },
 
   workoutTitle: {
@@ -721,7 +638,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  // FAB
+  // FAB - Removido fabPressed (não é mais necessário)
   fab: {
     position: "absolute",
     right: theme.spacing.lg,
@@ -739,7 +656,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
 
-  // Empty State
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
@@ -761,7 +677,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 
-  // Action Menu Modal
   menuOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -837,7 +752,6 @@ const styles = StyleSheet.create({
     marginLeft: 72,
   },
 
-  // Delete Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.7)",
