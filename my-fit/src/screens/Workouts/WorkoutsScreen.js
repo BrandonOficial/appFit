@@ -1,5 +1,3 @@
-// src/screens/Workouts/WorkoutsScreen.js - CORRIGIDO
-
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
@@ -15,7 +13,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import {
+  useNavigation,
+  useFocusEffect,
+  useRoute,
+} from "@react-navigation/native";
 
 import { useAuth } from "../../contexts/AuthContext";
 import { getWorkouts, deleteWorkout } from "../../services/supabase/workouts";
@@ -24,6 +26,9 @@ import { getExerciseImage } from "../../constants/exerciseImages";
 import { globalStyles } from "../../styles/globalStyles";
 import { typography } from "../../styles/typography";
 import { theme } from "../../styles/theme";
+
+// Import do Toast
+import Toast from "../../components/common/Toast";
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -174,7 +179,7 @@ const DeleteConfirmationModal = ({
 };
 
 // ============================================================================
-// WORKOUT CARD COMPONENT - ATUALIZADO COM TouchableOpacity
+// WORKOUT CARD COMPONENT
 // ============================================================================
 
 const WorkoutCard = ({ item, onPress, onOpenMenu, isDeleting }) => {
@@ -238,6 +243,7 @@ const WorkoutCard = ({ item, onPress, onOpenMenu, isDeleting }) => {
 
 const WorkoutsScreen = () => {
   const navigation = useNavigation();
+  const route = useRoute(); // Hook para acessar params
   const { user } = useAuth();
 
   const [workouts, setWorkouts] = useState([]);
@@ -251,6 +257,9 @@ const WorkoutsScreen = () => {
   const [workoutToDelete, setWorkoutToDelete] = useState(null);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [selectedWorkout, setSelectedWorkout] = useState(null);
+
+  // State para o Toast
+  const [toastMessage, setToastMessage] = useState(null);
 
   // ============================================================================
   // DATA LOADING
@@ -279,6 +288,18 @@ const WorkoutsScreen = () => {
     useCallback(() => {
       loadWorkouts();
     }, [user])
+  );
+
+  // Effect para exibir o Toast se houver mensagem nos params
+  useFocusEffect(
+    useCallback(() => {
+      if (route.params?.toastMessage) {
+        setToastMessage(route.params.toastMessage);
+
+        // Limpa o parâmetro para não exibir novamente se o usuário navegar e voltar
+        navigation.setParams({ toastMessage: null });
+      }
+    }, [route.params?.toastMessage])
   );
 
   // ============================================================================
@@ -377,9 +398,8 @@ const WorkoutsScreen = () => {
       setWorkouts((prev) => prev.filter((w) => w.id !== workoutId));
       setFilteredWorkouts((prev) => prev.filter((w) => w.id !== workoutId));
 
-      setTimeout(() => {
-        Alert.alert("Sucesso", `"${workoutName}" foi deletado com sucesso!`);
-      }, 300);
+      // Mostra Toast de sucesso ao deletar também
+      setToastMessage(`"${workoutName}" deletado com sucesso!`);
     } catch (error) {
       console.error("Erro ao deletar:", error);
       Alert.alert("Erro", "Não foi possível deletar o treino.");
@@ -438,6 +458,9 @@ const WorkoutsScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Componente Toast Renderizado no Topo */}
+      <Toast message={toastMessage} onHide={() => setToastMessage(null)} />
+
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Meus Treinos</Text>
         <TouchableOpacity
@@ -500,7 +523,6 @@ const WorkoutsScreen = () => {
         ListEmptyComponent={renderEmptyState}
       />
 
-      {/* FAB - Corrigido com TouchableOpacity */}
       <TouchableOpacity
         style={styles.fab}
         onPress={navigateToCreateWorkout}
@@ -600,7 +622,7 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.md,
   },
 
-  // Card - Removido workoutCardPressed (não é mais necessário)
+  // Card
   workoutCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -638,7 +660,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  // FAB - Removido fabPressed (não é mais necessário)
+  // FAB
   fab: {
     position: "absolute",
     right: theme.spacing.lg,

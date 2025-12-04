@@ -379,33 +379,23 @@ const CreateWorkoutScreen = () => {
         }
       }
 
-      // ATUALIZADO: Sempre volta para WorkoutsScreen após criar/editar
       const successMessage = isEditing
         ? "Treino atualizado com sucesso!"
         : "Treino criado com sucesso!";
 
-      // Primeiro mostra o alert
       setIsLoading(false);
 
-      Alert.alert(
-        "Sucesso!",
-        successMessage,
-        [
+      // ATUALIZADO: Navegação passando o parâmetro para o Toast
+      navigation.reset({
+        index: 0,
+        routes: [
           {
-            text: "OK",
-            onPress: () => {
-              // Reseta a navegação para o início da stack (WorkoutsScreen)
-              navigation.reset({
-                index: 0,
-                routes: [{ name: "Workouts" }],
-              });
-            },
+            name: "Workouts",
+            params: { toastMessage: successMessage },
           },
         ],
-        { cancelable: false }
-      );
-
-      return; // Para não executar o finally
+      });
+      return;
     } catch (e) {
       console.error("Erro ao salvar treino:", e);
       Alert.alert("Erro", "Não foi possível salvar o treino.");
